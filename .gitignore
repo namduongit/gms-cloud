@@ -1,0 +1,25 @@
+# Build outputs
+bin/
+cmd/**/bin/
+*.exe
+*.dll
+*.so
+*.dylib
+
+# Go workspace artifacts
+*.test
+*.out
+*.log
+coverage/
+dist/
+
+# Go modules & tooling
+vendor/
+.idea/
+.vscode/
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
