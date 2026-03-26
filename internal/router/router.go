@@ -4,17 +4,26 @@ import (
 	"url-shortener/internal/handler"
 	"url-shortener/internal/middleware"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 )
 
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{"http://localhost:5173"},
+		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowHeaders:     []string{"Authorization", "Content-Type"},
+		AllowCredentials: true,
+	}))
+
 	r.SetTrustedProxies(nil)
 
 	authGroup := r.Group("/auth")
 	{
 		authGroup.POST("/register", handler.Register)
 		authGroup.POST("/login", handler.Login)
+		authGroup.GET("/config", handler.AuthConfig)
 	}
 
 	urlGroup := r.Group("/api/urls")

@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"url-shortener/internal/config"
 	"url-shortener/internal/model"
 	"url-shortener/internal/utils"
@@ -104,14 +105,60 @@ func Login(c *gin.Context) {
 		}, string(jwtKey), string(user.Role), int(user.ID),
 	)
 
+	cfg := config.GetConfig()
+	secureCookie := strings.HasPrefix(cfg.HOST, "https")
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "accessToken",
+		Value:    *tokenString,
+		Path:     "/",
+		MaxAge:   24 * 60 * 60,
+		HttpOnly: true,
+		Secure:   secureCookie,
+		SameSite: http.SameSiteLaxMode,
+	})
+
 	c.JSON(http.StatusOK, config.GinResponse(
 		map[string]any{
 			"email": user.Email,
 			"role":  user.Role,
-			"token": tokenString,
+			"plan":  user.Plan.Name,
 		},
 		config.RestFulSuccess,
 		nil,
 		config.RestFulCodeSuccess,
 	))
+}
+
+func AuthConfig(c *gin.Context) {
+	tokenStr, err := c.Cookie("accessToken")
+	authenticated := false
+
+	if err == nil && strings.TrimSpace(tokenStr) != "" {
+		authenticated = utils.VerifyToken(tokenStr, string(jwtKey))
+		if !authenticated {
+			clearAccessTokenCookie(c)
+		}
+	} else {
+		clearAccessTokenCookie(c)
+	}
+
+	c.JSON(http.StatusOK, config.GinResponse(
+		authenticated,
+		config.RestFulSuccess,
+		nil,
+		config.RestFulCodeSuccess,
+	))
+}
+
+func clearAccessTokenCookie(c *gin.Context) {
+	secureCookie := strings.HasPrefix(config.GetConfig().HOST, "https")
+	http.SetCookie(c.Writer, &http.Cookie{
+		Name:     "accessToken",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   secureCookie,
+		SameSite: http.SameSiteLaxMode,
+	})
 }
