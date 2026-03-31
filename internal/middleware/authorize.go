@@ -47,14 +47,17 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		if err != nil || !token.Valid {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
-				[]string{"Invalid token"},
+				"Invalid or expired token",
 				config.RestFulInvalid,
 				config.RestFulCodeInvalid,
 			))
 			return
 		}
 
-		userID, ok := token.Claims.(jwt.MapClaims)["uid"].(float64)
+		// Print token claims for debugging
+		fmt.Printf("Token Claims: %+v\n", token.Claims)
+
+		accountID, ok := token.Claims.(jwt.MapClaims)["uid"].(float64)
 		if !ok {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
 				[]string{"Invalid token claims"},
@@ -64,8 +67,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		fmt.Println(userID)
-		c.Set("uid", uint(userID))
+		fmt.Printf("Middleware - Authenticated with Account ID: %d\n", uint(accountID))
+		c.Set("accountID", uint(accountID))
 
 		c.Next()
 	}

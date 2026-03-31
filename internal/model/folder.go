@@ -4,11 +4,11 @@ import (
 	"gorm.io/gorm"
 )
 
-type URL struct {
+type Folder struct {
 	gorm.Model
 
-	ShortCode string `gorm:"uniqueIndex"`
-	LongURL   string
+	Name       string
+	TotalFiles int
 
 	AccountID uint `gorm:"index"`
 }

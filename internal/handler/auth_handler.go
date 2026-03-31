@@ -4,14 +4,14 @@ import (
 	"net/http"
 	"strings"
 	"url-shortener/internal/config"
-	"url-shortener/internal/model"
+	"url-shortener/internal/model/response"
+	"url-shortener/internal/service"
 	"url-shortener/internal/utils"
 
 	"github.com/gin-gonic/gin"
-	"golang.org/x/crypto/bcrypt"
 )
 
-var jwtKey = config.GetConfig().JWTSecret
+var cfg = config.GetConfig()
 
 type RegisterRequest struct {
 	Email    string `json:"email"`
@@ -22,40 +22,39 @@ func Register(c *gin.Context) {
 	var req RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
-			[]string{"Required email and password"},
-			config.RestFulInvalid,
-			config.RestFulCodeInvalid,
-		))
+		c.JSON(
+			http.StatusBadRequest,
+			config.GinErrorResponse(
+				err.Error(),
+				config.RestFulInvalid,
+				config.RestFulCodeInvalid,
+			))
 		return
 	}
 
-	hashed, _ := bcrypt.GenerateFromPassword([]byte(req.Password), 10)
+	account, err := service.Register(req.Email, req.Password)
 
-	var plan model.Plan
-	config.DB.Where("name = ?", "Free").First(&plan)
-
-	user := model.User{
-		Email:    req.Email,
-		Password: string(hashed),
-		PlanID:   plan.ID,
-		Role:     model.RoleUser,
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			config.GinErrorResponse(
+				err.Error(),
+				config.RestFulInvalid,
+				config.RestFulCodeInvalid,
+			))
+		return
 	}
 
-	if err := config.DB.Create(&user).Error; err != nil {
-		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
-			[]string{"Email already exists"},
-			config.RestFulInvalid,
-			config.RestFulCodeInvalid,
-		))
-		return
+	service.PreloadPlanForAccount(account)
+
+	response := response.RegisterResponse{
+		Email:    account.Email,
+		Role:     string(account.Role),
+		PlanName: account.Plan.Name,
 	}
 
 	c.JSON(http.StatusOK, config.GinResponse(
-		map[string]any{
-			"email": user.Email,
-			"plan":  plan.Name,
-		},
+		response,
 		config.RestFulSuccess,
 		nil,
 		config.RestFulCodeSuccess,
@@ -71,42 +70,42 @@ func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
-			[]string{"Required email and password"},
+			err.Error(),
 			config.RestFulInvalid,
 			config.RestFulCodeInvalid,
 		))
 		return
 	}
 
-	var user model.User
-	if err := config.DB.Where("email = ?", req.Email).First(&user).Error; err != nil {
+	account, err := service.Login(req.Email, req.Password)
+	if err != nil {
 		c.JSON(http.StatusUnauthorized, config.GinErrorResponse(
-			[]string{"Invalid credentials"},
+			err.Error(),
 			config.RestFulUnauthorized,
 			config.RestFulCodeUnauthorized,
 		))
 		return
 	}
 
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(req.Password)); err != nil {
-		c.JSON(http.StatusUnauthorized, config.GinErrorResponse(
-			[]string{"Invalid credentials"},
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	service.PreloadPlanForAccount(account)
 
 	tokenString, _ := utils.GenerateToken(
 		map[string]any{
-			"uid":   user.ID,
-			"email": user.Email,
-			"role":  user.Role,
-		}, string(jwtKey), string(user.Role), int(user.ID),
+			"uid":   account.ID,
+			"email": account.Email,
+			"plan":  account.Plan.Name,
+		}, string(cfg.JWTSecret), string(account.Role), int(account.ID),
 	)
 
-	cfg := config.GetConfig()
-	secureCookie := strings.HasPrefix(cfg.HOST, "https")
+	response := response.LoginResponse{
+		Email:    account.Email,
+		Role:     string(account.Role),
+		PlanName: account.Plan.Name,
+	}
+
+	secureCookie := cfg.ENV == config.Production
+	// If true, the cookie will only be sent over HTTPS. In production, this should be true.
+	// In development, you might want to set it to false if you're not using HTTPS locally.
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "accessToken",
 		Value:    *tokenString,
@@ -118,23 +117,21 @@ func Login(c *gin.Context) {
 	})
 
 	c.JSON(http.StatusOK, config.GinResponse(
-		map[string]any{
-			"email": user.Email,
-			"role":  user.Role,
-			"plan":  user.Plan.Name,
-		},
+		response,
 		config.RestFulSuccess,
 		nil,
 		config.RestFulCodeSuccess,
 	))
 }
 
+/* Ignore */
+
 func AuthConfig(c *gin.Context) {
 	tokenStr, err := c.Cookie("accessToken")
 	authenticated := false
 
 	if err == nil && strings.TrimSpace(tokenStr) != "" {
-		authenticated = utils.VerifyToken(tokenStr, string(jwtKey))
+		authenticated = utils.VerifyToken(tokenStr, string(cfg.JWTSecret))
 		if !authenticated {
 			clearAccessTokenCookie(c)
 		}
@@ -142,8 +139,23 @@ func AuthConfig(c *gin.Context) {
 		clearAccessTokenCookie(c)
 	}
 
+	response := response.AuthConfigResponse{
+		IsAuthenticated: authenticated,
+	}
+
 	c.JSON(http.StatusOK, config.GinResponse(
-		authenticated,
+		response,
+		config.RestFulSuccess,
+		nil,
+		config.RestFulCodeSuccess,
+	))
+}
+
+func Logout(c *gin.Context) {
+	clearAccessTokenCookie(c)
+
+	c.JSON(http.StatusOK, config.GinResponse(
+		nil,
 		config.RestFulSuccess,
 		nil,
 		config.RestFulCodeSuccess,
@@ -151,7 +163,7 @@ func AuthConfig(c *gin.Context) {
 }
 
 func clearAccessTokenCookie(c *gin.Context) {
-	secureCookie := strings.HasPrefix(config.GetConfig().HOST, "https")
+	secureCookie := cfg.ENV == config.Production
 	http.SetCookie(c.Writer, &http.Cookie{
 		Name:     "accessToken",
 		Value:    "",

@@ -8,25 +8,45 @@ import (
 )
 
 func main() {
-	var port = config.GetConfig().PORT
-	var host = config.GetConfig().HOST
+	var port = config.GetConfig().Port
+	var serverDirect = config.GetConfig().ServerDirect
 
-	config.ConnectDB()
+	config.InitDBClient()
+	config.InitCLMiniO()
 
-	config.DB.AutoMigrate(
+	config.DBClient.AutoMigrate(
 		&model.Plan{},
-		&model.User{},
+		&model.Account{},
+		&model.Profile{},
 		&model.URL{},
+		&model.Folder{},
 		&model.File{},
+		&model.Token{},
 	)
 
-	config.DB.FirstOrCreate(&model.Plan{}, model.Plan{
+	// Init 3 plans: Free, Pro, Enterprise
+	// Free plan: 1 GB storage, 20 URLs
+	// Pro plan: 10 GB storage, 100 URLs
+	// Enterprise plan: 100 GB storage, 1000 URLs
+	config.DBClient.FirstOrCreate(&model.Plan{}, model.Plan{
+		Name:         "Pro",
+		StorageLimit: 10 * 1024 * 1024 * 1024,
+		URLLimit:     100,
+	})
+
+	config.DBClient.FirstOrCreate(&model.Plan{}, model.Plan{
+		Name:         "Enterprise",
+		StorageLimit: 100 * 1024 * 1024 * 1024,
+		URLLimit:     1000,
+	})
+
+	config.DBClient.FirstOrCreate(&model.Plan{}, model.Plan{
 		Name:         "Free",
 		StorageLimit: 10 * 1024 * 1024 * 1024,
 		URLLimit:     20,
 	})
 
 	router := router.SetupRouter()
-	fmt.Println("Server running on: ", host, ":", port)
+	fmt.Println("Server running on: ", serverDirect)
 	router.Run(":" + port)
 }

@@ -11,9 +11,9 @@ func GenerateToken(sub any, secretKey string, role string, uid int) (*string, er
 	exp := jwt.NewNumericDate(time.Now().Add(24 * 7 * time.Hour))
 
 	claims := jwt.MapClaims{
+		"uid":     uid,
 		"sub":     sub,
 		"role":    role,
-		"uid":     uid,
 		"version": 1,
 		"time": map[string]any{
 			"iat": iat,

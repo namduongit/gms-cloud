@@ -1,10 +1,14 @@
 package config
 
+/*
+- Errs: any is string | []string | anything
+- Data: any is object | array | anything
+*/
 type RestFulResponse struct {
 	Code    RestFulCode    `json:"code"`
 	Message RestFulMessage `json:"message"`
-	Errs    *[]string      `json:"errs,omitempty"`
-	Data    interface{}    `json:"data,omitempty"`
+	Errs    any            `json:"errs"`
+	Data    interface{}    `json:"data"`
 }
 
 type RestFulCode int
@@ -29,7 +33,7 @@ const (
 	RestFulInternalError RestFulMessage = "Internal server error"
 )
 
-func GinResponse(data interface{}, message RestFulMessage, errs *[]string, code RestFulCode) RestFulResponse {
+func GinResponse(data interface{}, message RestFulMessage, errs any, code RestFulCode) RestFulResponse {
 	return RestFulResponse{
 		Code:    code,
 		Message: message,
@@ -38,10 +42,24 @@ func GinResponse(data interface{}, message RestFulMessage, errs *[]string, code 
 	}
 }
 
-func GinErrorResponse(errs []string, message RestFulMessage, code RestFulCode) RestFulResponse {
+func GinErrorResponse(errs any, message RestFulMessage, code RestFulCode) RestFulResponse {
 	return RestFulResponse{
 		Code:    code,
 		Message: message,
 		Errs:    &errs,
 	}
 }
+
+type ErrorMessageExmaple string
+
+const (
+	// HTTP body
+	InvalidRequestBody ErrorMessageExmaple = "Invalid request body"
+
+	// File
+	FileNotExists ErrorMessageExmaple = "File not exists"
+	FileNotImage  ErrorMessageExmaple = "File is not an image"
+
+	// Folder
+	FolderNameExists ErrorMessageExmaple = "Folder name already exists"
+)

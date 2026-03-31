@@ -8,17 +8,40 @@ import (
 	"github.com/joho/godotenv"
 )
 
-type AppConfig struct {
-	PORT string
-	HOST string
+type Environment string
 
+const (
+	Development Environment = "DEVELOPMENT"
+	Production  Environment = "PRODUCTION"
+)
+
+type AppConfig struct {
+	// Environment production
+	ENV Environment
+
+	// Server
+	Port         string
+	ServerDirect string
+
+	// Secret key for JWT and Token
+	JWTSecret   string
+	TokenSecret string
+
+	// Client
+	ClientHost string
+
+	// Database
 	DBHost     string
 	DBUser     string
 	DBPassword string
 	DBName     string
 	DBPort     string
 	DBSSLMode  string
-	JWTSecret  string
+
+	// MiniO
+	MinIOEndpoint  string
+	MinIOAccessKey string
+	MinIOSecretKey string
 }
 
 var (
@@ -33,8 +56,12 @@ func GetConfig() AppConfig {
 		}
 
 		cfg = AppConfig{
-			PORT: getEnv("PORT", "8080"),
-			HOST: getEnv("HOST", "http://localhost"),
+			ENV: Environment(getEnv("ENV", string(Development))),
+
+			Port:         getEnv("PORT", "8080"),
+			ServerDirect: getEnv("SERVER_DIRECT", "http://localhost:8080"),
+
+			ClientHost: getEnv("CLIENT_HOST", "http://localhost:5173"),
 
 			DBHost:     getEnv("DB_HOST", "localhost"),
 			DBUser:     getEnv("DB_USER", "postgres"),
@@ -43,6 +70,10 @@ func GetConfig() AppConfig {
 			DBPort:     getEnv("DB_PORT", "5432"),
 			DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 			JWTSecret:  getEnv("JWT_SECRET", "secret_key"),
+
+			MinIOEndpoint:  getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			MinIOAccessKey: getEnv("MINIO_ACCESS_KEY", "access_key"),
+			MinIOSecretKey: getEnv("MINIO_SECRET_KEY", "secret_key"),
 		}
 	})
 

@@ -1,45 +1,41 @@
 package service
 
 import (
+	"errors"
 	"strings"
+	"url-shortener/internal/config"
 	"url-shortener/internal/model"
 	"url-shortener/internal/repository"
 
 	"github.com/google/uuid"
 )
 
-func GetListByUserID(userID uint) ([]model.URLResponse, error) {
-	urls, err := repository.GetByUserID(userID)
-	if err != nil {
-		return nil, err
-	}
+var cfg = config.GetConfig()
 
-	result := make([]model.URLResponse, len(urls))
-	for i, url := range urls {
-		result[i] = model.URLResponse{
-			ShortCode: url.ShortCode,
-			LongURL:   url.LongURL,
-			CreatedAt: url.CreatedAt,
-		}
-	}
-
-	return result, nil
-}
-
-func CreateShortURL(longURL string) (string, error) {
+func CreateShortURL(accountID uint, longURL string) (*model.URL, error) {
 	code := strings.ReplaceAll(uuid.New().String(), "-", "")[:6]
 
 	url := model.URL{
 		ShortCode: code,
 		LongURL:   longURL,
+		AccountID: accountID,
 	}
 
 	err := repository.CreateURL(&url)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return code, nil
+	return &url, nil
+}
+
+func GetListURLsByAccountID(accountID uint) ([]model.URL, error) {
+	urls, err := repository.GetByAccountID(accountID)
+	if err != nil {
+		return nil, err
+	}
+
+	return urls, nil
 }
 
 func GetLongURL(code string) (string, error) {
@@ -53,4 +49,23 @@ func GetLongURL(code string) (string, error) {
 
 func DeleteURL(code string) error {
 	return repository.DeleteByShortCode(code)
+}
+
+func GetTotalAmountOfURLsByaccountID(accountID uint) (int64, error) {
+	var count int64
+	err := config.DBClient.Model(&model.URL{}).Where("account_id = ?", accountID).Count(&count).Error
+	return count, err
+}
+
+func DeleteURLByID(accountID uint, urlID uint) error {
+	err := repository.DeleteByIDAndAccountID(urlID, accountID)
+	if err != nil {
+		if strings.Contains(err.Error(), "record not found") {
+			return errors.New("URL not found")
+		}
+
+		return err
+	}
+
+	return nil
 }

@@ -12,39 +12,42 @@ func SetupRouter() *gin.Engine {
 	r := gin.Default()
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"http://localhost:5173"},
-		AllowMethods:     []string{"GET", "POST", "OPTIONS"},
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
 
 	r.SetTrustedProxies(nil)
 
-	authGroup := r.Group("/auth")
+	// Public routes
+	r.GET("/api/plans", handler.GetPlans)
+	r.POST("/auth/register", handler.Register)
+	r.POST("/auth/login", handler.Login)
+	r.GET("/auth/config", handler.AuthConfig)
+	r.POST("/auth/logout", handler.Logout)
+
+	r.GET("/api/public/plans", handler.GetPlans)
+	r.GET("/api/public/images/:code", handler.GetImageFile)
+
+	// Protected routes
+	protected := r.Group("/api/guard")
+	protected.Use(middleware.AuthMiddleware())
 	{
-		authGroup.POST("/register", handler.Register)
-		authGroup.POST("/login", handler.Login)
-		authGroup.GET("/config", handler.AuthConfig)
-	}
+		protected.GET("/profile", handler.GetProfile)
+		protected.PUT("/profile", handler.UpdateProfile)
 
-	urlGroup := r.Group("/api/urls")
-	urlGroup.Use(middleware.AuthMiddleware())
-	{
-		urlGroup.GET("/", handler.GetUrls)
+		protected.GET("/folders", handler.GetFolders)
+		protected.POST("/folders", handler.CreateFolder)
+		protected.DELETE("/folders/:id", handler.DeleteFolder)
 
-		urlGroup.POST("/", handler.CreateShortURL)
+		protected.GET("/files", handler.GetFiles)
+		protected.POST("/files", handler.UploadFile)
+		protected.DELETE("/files/:id", handler.DeleteFile)
+		protected.PATCH("/files/:id/folder", handler.MoveFile)
 
-		urlGroup.GET("/:code", handler.RedirectURL)
-
-		urlGroup.DELETE("/:code", handler.DeleteURL)
-	}
-
-	fileGroup := r.Group("/api/files")
-	fileGroup.Use(middleware.AuthMiddleware())
-	{
-		fileGroup.GET("/", handler.GetFiles)
-		fileGroup.POST("/", handler.UploadFile)
-		fileGroup.GET("/:filename", handler.GetFile)
-		fileGroup.DELETE("/:filename", handler.DeleteFile)
+		protected.GET("/urls", handler.GetUrls)
+		protected.POST("/urls", handler.CreateShortURL)
+		protected.DELETE("/urls/:id", handler.DeleteURL)
 	}
 
 	return r

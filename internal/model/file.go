@@ -1,22 +1,24 @@
 package model
 
-import "time"
+import "gorm.io/gorm"
+
+type FileType string
+
+const (
+	FileTypeImage    = "image"
+	FileTypeDocument = "document"
+
+	FileTypePrivate = "private"
+)
 
 type File struct {
-	ID         uint `gorm:"primaryKey"`
+	gorm.Model
+
 	FileName   string
-	StoredName string
-	FilePath   string
+	FileType   FileType `gorm:"default:'private'"`
+	StorageKey string
 	Size       int64
-	CreatedAt  time.Time
 
-	UserID uint
-	User   User
-}
-
-type FileResponse struct {
-	FileName   string    `json:"fileName"`
-	StoredName string    `json:"storedName"`
-	Size       int64     `json:"size"`
-	UploadedAt time.Time `json:"uploadedAt"`
+	AccountID uint  `gorm:"index"`
+	FolderID  *uint `gorm:"index"`
 }

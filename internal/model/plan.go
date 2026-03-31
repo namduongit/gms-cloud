@@ -1,10 +1,18 @@
 package model
 
-type Plan struct {
-	ID           uint `gorm:"primaryKey"`
-	Name         string
-	StorageLimit int64
-	URLLimit     int
+import "gorm.io/gorm"
 
-	Users []User
+/*
+- Price is VND unit
+- If you want to change price, please setup the price carefully
+*/
+type Plan struct {
+	gorm.Model
+
+	Name         string
+	Price        int
+	StorageLimit int64
+	URLLimit     int64
+
+	Accounts []Account
 }

@@ -11,9 +11,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func GetUrls(c *gin.Context) {
+func GetFolders(c *gin.Context) {
 	accountID := c.GetUint("accountID")
 	_, err := service.GetAccountByID(accountID)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
 			err.Error(),
@@ -23,32 +24,29 @@ func GetUrls(c *gin.Context) {
 		return
 	}
 
-	urls, err := service.GetListURLsByAccountID(accountID)
+	folders, err := service.GetFoldersByUserID(accountID)
 	if err != nil {
-		c.JSON(
-			http.StatusInternalServerError,
-			config.GinErrorResponse(
-				err.Error(),
-				config.RestFulInternalError,
-				config.RestFulCodeInternalError,
-			))
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			err.Error(),
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
 		return
 	}
 
-	urlResponse := make([]response.URLResponse, len(urls))
-	for i, url := range urls {
-		urlResponse[i] = response.URLResponse{
-			ID:          url.ID,
-			Code:        url.ShortCode,
-			OriginalURL: url.LongURL,
-			ShortURL:    "",
-			CreatedAt:   url.CreatedAt,
+	folderResponses := make([]response.FolderResponse, len(folders))
+	for i, folder := range folders {
+		folderResponses[i] = response.FolderResponse{
+			ID:         folder.ID,
+			Name:       folder.Name,
+			TotalFiles: folder.TotalFiles,
+			CreatedAt:  folder.CreatedAt,
 		}
 	}
 
-	response := response.URLListResponse{
+	response := response.FolderListResponse{
 		OwnerID: accountID,
-		URLs:    urlResponse,
+		Folders: folderResponses,
 	}
 
 	c.JSON(http.StatusOK, config.GinResponse(
@@ -57,14 +55,13 @@ func GetUrls(c *gin.Context) {
 		nil,
 		config.RestFulCodeSuccess,
 	))
-
 }
 
-type CreateURLRequest struct {
-	URL string `json:"url"`
+type CreateFolderRequest struct {
+	Name string `json:"name" binding:"required"`
 }
 
-func CreateShortURL(c *gin.Context) {
+func CreateFolder(c *gin.Context) {
 	accountID := c.GetUint("accountID")
 	_, err := service.GetAccountByID(accountID)
 
@@ -77,8 +74,8 @@ func CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	var req CreateURLRequest
-	if err := c.ShouldBindJSON(&req); err != nil || req.URL == "" {
+	var req CreateFolderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
 			config.InvalidRequestBody,
 			config.RestFulInvalid,
@@ -87,34 +84,43 @@ func CreateShortURL(c *gin.Context) {
 		return
 	}
 
-	url, err := service.CreateShortURL(accountID, req.URL)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			err.Error(),
-			config.RestFulInternalError,
-			config.RestFulCodeInternalError,
+	existingFolder, _ := service.GetFolderByFolderNameAndAccountID(req.Name, accountID)
+
+	if existingFolder != nil {
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			config.FolderNameExists,
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
 		))
 		return
 	}
 
-	urlResponse := response.URLResponse{
-		ID:          url.ID,
-		Code:        url.ShortCode,
-		OriginalURL: url.LongURL,
-		ShortURL:    cfg.ServerDirect + "/" + url.ShortCode,
-		CreatedAt:   url.CreatedAt,
+	folder, err := service.CreateFolder(accountID, req.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
+			err.Error(),
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
+
+	response := response.FolderResponse{
+		ID:         folder.ID,
+		Name:       folder.Name,
+		TotalFiles: folder.TotalFiles,
+		CreatedAt:  folder.CreatedAt,
 	}
 
 	c.JSON(http.StatusOK, config.GinResponse(
-		urlResponse,
+		response,
 		config.RestFulSuccess,
 		nil,
 		config.RestFulCodeSuccess,
 	))
-
 }
 
-func DeleteURL(c *gin.Context) {
+func DeleteFolder(c *gin.Context) {
 	accountID := c.GetUint("accountID")
 	_, err := service.GetAccountByID(accountID)
 	if err != nil {
@@ -126,18 +132,27 @@ func DeleteURL(c *gin.Context) {
 		return
 	}
 
-	urlID64, err := strconv.ParseUint(c.Param("id"), 10, 32)
+	folderID64, err := strconv.ParseUint(c.Param("id"), 10, 32)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
-			"Invalid url id",
+			"Invalid folder id",
 			config.RestFulInvalid,
 			config.RestFulCodeInvalid,
 		))
 		return
 	}
 
-	err = service.DeleteURLByID(accountID, uint(urlID64))
+	err = service.DeleteFolderByID(accountID, uint(folderID64))
 	if err != nil {
+		if strings.Contains(err.Error(), "Folder has files") {
+			c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+				err.Error(),
+				config.RestFulInvalid,
+				config.RestFulCodeInvalid,
+			))
+			return
+		}
+
 		if strings.Contains(err.Error(), "not found") {
 			c.JSON(http.StatusNotFound, config.GinErrorResponse(
 				err.Error(),
@@ -161,5 +176,4 @@ func DeleteURL(c *gin.Context) {
 		nil,
 		config.RestFulCodeSuccess,
 	))
-
 }
