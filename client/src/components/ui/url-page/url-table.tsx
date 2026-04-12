@@ -27,61 +27,61 @@ const UrlTable = ({
     onNextPage,
 }: UrlTableProps) => {
     return (
-        <div className="mt-5 overflow-hidden rounded-2xl border border-gray-300/90 bg-white">
-            <div className="flex items-center justify-between border-b border-[#eef2f7] bg-[#fafbfd] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f6368]">
+        <div className="mt-2 overflow-hidden bg-white">
+            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
                 <span>Danh sách đường dẫn</span>
                 <span>{totalItems} mục</span>
             </div>
 
-            <div className="hidden border-b border-[#eef2f7] bg-[#fcfdff] px-4 py-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#8b939e] md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_180px] md:gap-4">
+            <div className="hidden border-b border-gray-200 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_180px] md:gap-4">
                 <span>Tên + mã</span>
                 <span>Ghi chú</span>
                 <span>URL</span>
                 <span className="text-right">Thao tác</span>
             </div>
 
-            <div className="divide-y divide-[#eef2f7]">
+            <div className="divide-y divide-gray-200">
                 {paginatedUrls.map((item) => (
-                    <div key={item.uuid} className="px-4 py-3 transition hover:bg-[#f8fbff]">
+                    <div key={item.uuid} className="px-4 py-3 hover:bg-gray-50">
                         <div className="grid gap-3 md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_180px] md:items-start md:gap-4">
                             <div className="min-w-0 flex items-start gap-3">
-                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-[#e8f0fe] text-[#1a73e8]">
+                                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-md border border-gray-300 bg-white text-gray-600">
                                     <i className="fa-solid fa-link text-xs"></i>
                                 </span>
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <p className="truncate text-sm font-semibold text-[#202124]">/{item.code || "-"}</p>
-                                        <span className="rounded-full border border-gray-300/90 px-2 py-0.5 text-[11px] font-semibold text-[#4d5562]">#{item.uuid.slice(0, 8)}</span>
+                                        <p className="truncate text-sm font-semibold text-gray-900">/{item.code || "-"}</p>
+                                        <span className="rounded-full border border-gray-300/90 px-2 py-0.5 text-[11px] font-semibold text-gray-600">#{item.uuid.slice(0, 8)}</span>
                                     </div>
-                                    <p className="mt-1 text-xs text-[#8b939e]">Tạo ngày: {formatDate(String(item.created_at))}</p>
+                                    <p className="mt-1 text-xs text-gray-500">Tạo ngày: {formatDate(String(item.created_at))}</p>
                                 </div>
                             </div>
 
                             <div className="min-w-0">
-                                <p className="truncate text-sm text-[#5f6368]">{item.description || "--"}</p>
+                                <p className="truncate text-sm text-gray-600">{item.description || "--"}</p>
                             </div>
 
                             <div className="min-w-0">
-                                <p className="truncate text-sm font-medium text-[#202124]">
+                                <p className="truncate text-sm font-medium text-gray-900">
                                     <a href={item.short_url} target="_blank" rel="noopener noreferrer" className="text-[#1a73e8] hover:underline">
                                         {item.short_url}
                                     </a>
                                 </p>
                                 {item.original_url && (
-                                    <p className="mt-1 truncate text-xs text-[#8b939e]">Gốc: {item.original_url}</p>
+                                    <p className="mt-1 truncate text-xs text-gray-500">Gốc: {item.original_url}</p>
                                 )}
                             </div>
 
                             <div className="flex items-start justify-end gap-2">
                                 <button
-                                    className="inline-flex items-center gap-2 rounded-xl border border-gray-300/90 bg-white px-3 py-1.5 text-xs font-semibold text-[#202124] transition hover:bg-[#f4f7fc]"
+                                    className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 hover:bg-gray-100"
                                     onClick={() => window.open(item.short_url, "_blank", "noopener,noreferrer")}
                                 >
                                     Mở
                                     <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>
                                 </button>
                                 <button
-                                    className="inline-flex items-center rounded-xl border border-[#ef4444] px-3 py-1.5 text-xs font-semibold text-[#dc2626] transition hover:bg-[#fef2f2]"
+                                    className="inline-flex items-center rounded-md border border-[#ef4444] px-3 py-1.5 text-xs font-semibold text-[#dc2626] hover:bg-[#fef2f2]"
                                     onClick={() => void onDelete(item.uuid)}
                                 >
                                     Xóa
@@ -92,20 +92,20 @@ const UrlTable = ({
                 ))}
 
                 {!loading && totalItems === 0 && (
-                    <div className="px-4 py-10 text-center text-sm text-[#5f6368]">
+                    <div className="px-4 py-10 text-center text-sm text-gray-500">
                         Chưa có URL nào phù hợp.
                     </div>
                 )}
             </div>
 
             {totalItems > 0 && (
-                <div className="flex flex-col items-start justify-between gap-3 border-t border-[#eef2f7] bg-[#fafbfd] px-4 py-3 text-sm text-[#5f6368] md:flex-row md:items-center">
+                <div className="flex flex-col items-start justify-between gap-3 border-t border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-500 md:flex-row md:items-center">
                     <div className="flex items-center gap-2">
                         <span>Hiển thị</span>
                         <select
                             value={itemsPerPage}
                             onChange={(event) => onItemsPerPageChange(Number(event.target.value))}
-                            className="rounded-lg border border-gray-300/90 bg-white px-2 py-1 text-sm text-[#202124] outline-none"
+                            className="rounded-md border border-gray-300 bg-white px-2 py-1 text-sm text-gray-900 outline-none"
                         >
                             {[5, 10, 15, 20].map((size) => (
                                 <option key={size} value={size}>
@@ -118,15 +118,15 @@ const UrlTable = ({
 
                     <div className="flex items-center gap-2">
                         <button
-                            className="rounded-lg border border-gray-300/90 bg-white px-3 py-1 text-sm font-semibold text-[#202124] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
                             onClick={onPreviousPage}
                             disabled={currentPage === 1}
                         >
                             Trước
                         </button>
-                        <span className="text-sm text-[#5f6368]">Trang {currentPage}/{totalPages}</span>
+                        <span className="text-sm text-gray-500">Trang {currentPage}/{totalPages}</span>
                         <button
-                            className="rounded-lg border border-gray-300/90 bg-white px-3 py-1 text-sm font-semibold text-[#202124] disabled:cursor-not-allowed disabled:opacity-50"
+                            className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm font-semibold text-gray-900 disabled:cursor-not-allowed disabled:opacity-50"
                             onClick={onNextPage}
                             disabled={currentPage === totalPages}
                         >

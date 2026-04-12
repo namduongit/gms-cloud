@@ -1,163 +1,185 @@
+import { useEffect, useRef, useState } from "react";
 import type { FileResponse } from "../../../services/types/file.type";
-import { formatDate } from "../../../services/utils/date";
-import { formatFileSize } from "../../../services/utils/file";
+import type { FolderResponse } from "../../../services/types/folder.type";
+import { formatDriveDate } from "../../../services/utils/date";
+import { formatFileSize, getIconForFileType } from "../../../services/utils/file";
+import folderIcon from "../../../assets/icons/folder-icon.png";
 import Button from "../button/button";
 
-type ExplorerItem =
-    | {
-        kind: "file";
-        key: string;
-        file: FileResponse;
-    }
-    | {
-        kind: "folder";
-        key: string;
-        folderName: string;
-    };
-
-interface FileExplorerProps {
-    currentFolder: string | null;
-    tableViewportRows: number;
-    rowMinHeight: number;
-    paginatedItems: ExplorerItem[];
-    selectedFile: FileResponse | null;
-    resolveFileFolderName: (file: FileResponse) => string;
-    onToggleFile: (file: FileResponse) => void;
-    onOpenFolder: (folderName: string) => void;
-    loading: boolean;
-    totalItems: number;
-    itemsPerPage: number;
-    currentPage: number;
-    totalPages: number;
-    onItemsPerPageChange: (size: number) => void;
-    onPreviousPage: () => void;
-    onNextPage: () => void;
+type FileExplorerProps = {
+    files: FileResponse[];
+    folders: FolderResponse[];
+    onOpenFolder?: (folder: FolderResponse) => void;
+    onRenameFolder?: (folder: FolderResponse) => void;
+    onDeleteFolder?: (folder: FolderResponse) => void;
+    onShareFile?: (file: FileResponse) => void;
+    onDownloadFile?: (file: FileResponse) => void;
+    onDeleteFile?: (file: FileResponse) => void;
+    onPreviewImage?: (file: FileResponse) => void;
 }
 
 const FileExplorer = ({
-    currentFolder,
-    tableViewportRows,
-    rowMinHeight,
-    paginatedItems,
-    selectedFile,
-    resolveFileFolderName,
-    onToggleFile,
+    files,
+    folders,
     onOpenFolder,
-    loading,
-    totalItems,
-    itemsPerPage,
-    currentPage,
-    totalPages,
-    onItemsPerPageChange,
-    onPreviousPage,
-    onNextPage,
+    onRenameFolder,
+    onDeleteFolder,
+    onShareFile,
+    onDownloadFile,
+    onDeleteFile,
+    onPreviewImage,
 }: FileExplorerProps) => {
+    const [openMenuKey, setOpenMenuKey] = useState<string | null>(null);
+    const menuContainerRef = useRef<HTMLDivElement | null>(null);
+
+    useEffect(() => {
+        const handleOutsideClick = (event: MouseEvent) => {
+            if (!menuContainerRef.current) {
+                return;
+            }
+
+            if (!menuContainerRef.current.contains(event.target as Node)) {
+                setOpenMenuKey(null);
+            }
+        };
+
+        document.addEventListener("mousedown", handleOutsideClick);
+        return () => document.removeEventListener("mousedown", handleOutsideClick);
+    }, []);
+
     return (
-        <div className="overflow-hidden rounded-2xl border border-gray-300/90 bg-white">
-            <div className="flex items-center justify-between border-b border-[#eef2f7] bg-[#fafbfd] px-4 py-3 text-xs font-semibold uppercase tracking-[0.12em] text-[#5f6368]">
-                <span>Tệp và thư mục</span>
-                <span>{currentFolder ?? "GMS Cloud"}</span>
-            </div>
-
-            <div
-                className="divide-y divide-[#eef2f7] overflow-y-auto"
-                style={{
-                    height: `${tableViewportRows * rowMinHeight}px`,
-                    maxHeight: `${tableViewportRows * rowMinHeight}px`,
-                }}
-            >
-                {paginatedItems.map((item) => {
-                    if (item.kind === "file") {
-                        return (
-                            <Button
-                                key={item.key}
-                                className={`flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-[#f8fbff] ${selectedFile?.uuid === item.file.uuid ? "bg-[#eef4ff]" : "bg-white"}`}
-                                onClick={() => onToggleFile(item.file)}
-                            >
-                                <div className="min-w-0 flex items-center gap-3">
-                                    <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#e8f0fe] text-[#1a73e8]">
-                                        <i className="fa-regular fa-file"></i>
-                                    </span>
-                                    <div className="min-w-0">
-                                        <p className="truncate text-sm font-semibold text-[#202124]">{item.file.file_name}</p>
-                                        <p className="truncate text-xs text-[#5f6368]">
-                                            {item.file.file_type} · {formatFileSize(item.file.size)} · {formatDate(String(item.file.uploaded_at))}
-                                        </p>
-                                    </div>
-                                </div>
-                                <span className="ml-4 shrink-0 text-xs text-[#5f6368]">{resolveFileFolderName(item.file)}</span>
-                            </Button>
-                        );
-                    }
-
-                    return (
+        <div className="divide-y divide-gray-100" ref={menuContainerRef}>
+            {folders.map((folder) => (
+                <div
+                    key={folder.uuid}
+                    className={`flex items-center px-4 py-3 text-sm hover:bg-gray-50 ${onOpenFolder ? "cursor-pointer" : ""}`}
+                    onClick={() => onOpenFolder?.(folder)}
+                >
+                    <div className="flex-3 flex items-center gap-3 font-medium text-gray-800">
+                        <img
+                            src={folderIcon}
+                            alt={folder.name}
+                            className="h-6 w-6" />
+                        {folder.name}
+                    </div>
+                    <div className="flex-1 text-gray-500">{formatDriveDate(folder.created_at)}</div>
+                    <div className="flex-1 text-gray-400">--</div>
+                    <div className="relative flex-1 text-end">
                         <Button
-                            key={item.key}
-                            className="flex w-full items-center justify-between px-4 py-3 text-left transition hover:bg-[#f8fbff]"
-                            onClick={() => onOpenFolder(item.folderName)}
+                            className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenMenuKey(openMenuKey === `folder-${folder.uuid}` ? null : `folder-${folder.uuid}`);
+                            }}
                         >
-                            <div className="min-w-0 flex items-center gap-3">
-                                <span className="grid h-9 w-9 place-items-center rounded-xl bg-[#fff6df] text-[#b26a00]">
-                                    <i className="fa-solid fa-folder"></i>
-                                </span>
-                                <p className="truncate text-sm font-semibold text-[#202124]">{item.folderName}</p>
-                            </div>
-
-                            <div>
-                                <span className="ml-4 shrink-0 text-xs font-semibold text-[#5f6368]">Mở</span>
-                            </div>
+                            <i className="fa-solid fa-ellipsis-vertical"></i>
                         </Button>
-                    );
-                })}
 
-                {!loading && totalItems === 0 && (
-                    <div className="px-4 py-10 text-center text-sm text-[#5f6368]">
-                        Chưa có dữ liệu trong vị trí này.
-                    </div>
-                )}
-            </div>
-
-            {totalItems > 0 && (
-                <div className="flex flex-col items-start justify-between gap-3 border-t border-[#eef2f7] bg-[#fafbfd] px-4 py-3 text-sm text-[#5f6368] md:flex-row md:items-center">
-                    <div className="flex items-center gap-2">
-                        <span>Hiển thị</span>
-                        <select
-                            value={itemsPerPage}
-                            onChange={(event) => onItemsPerPageChange(Number(event.target.value))}
-                            className="rounded-lg border border-gray-300/90 bg-white px-2 py-1 text-sm text-[#202124] outline-none"
-                        >
-                            {[5, 10].map((size) => (
-                                <option key={size} value={size}>
-                                    {size}
-                                </option>
-                            ))}
-                        </select>
-                        <span>/ trang</span>
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                        <button
-                            className="rounded-lg border border-gray-300/90 bg-white px-3 py-1 text-sm font-semibold text-[#202124] disabled:cursor-not-allowed disabled:opacity-50"
-                            onClick={onPreviousPage}
-                            disabled={currentPage === 1}
-                        >
-                            Trước
-                        </button>
-                        <span className="text-sm text-[#5f6368]">
-                            Trang {currentPage}/{totalPages}
-                        </span>
-                        <button
-                            className="rounded-lg border border-gray-300/90 bg-white px-3 py-1 text-sm font-semibold text-[#202124] disabled:cursor-not-allowed disabled:opacity-50"
-                            onClick={onNextPage}
-                            disabled={currentPage === totalPages}
-                        >
-                            Sau
-                        </button>
+                        {openMenuKey === `folder-${folder.uuid}` && (
+                            <div className="absolute right-0 top-8 z-10 w-44 bg-white p-1 shadow-lg">
+                                <button
+                                    type="button"
+                                    className="block w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenMenuKey(null);
+                                        onRenameFolder?.(folder);
+                                    }}
+                                >
+                                    Sửa tên thư mục
+                                </button>
+                                <button
+                                    type="button"
+                                    className="block w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                    onClick={(event) => {
+                                        event.stopPropagation();
+                                        setOpenMenuKey(null);
+                                        onDeleteFolder?.(folder);
+                                    }}
+                                >
+                                    Xóa thư mục
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
-            )}
+            ))}
+
+            {files.map((file) => (
+                <div
+                    key={file.uuid}
+                    className="flex items-center px-4 py-3 text-sm hover:bg-gray-50"
+                    onClick={() => {
+                        if (file.content_type?.startsWith("image/")) {
+                            onPreviewImage?.(file);
+                        }
+                    }}
+                >
+                    <div className="flex-3 flex items-center gap-3 font-medium text-gray-800">
+                        <img
+                            src={getIconForFileType(file.content_type)}
+                            alt={file.file_type}
+                            className="h-6 w-5" />
+                        <span className="truncate">{file.file_name}</span>
+                        {file.is_shared && (
+                            <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                <i className="fa-solid fa-link text-[10px]"></i>
+                                Đang chia sẻ
+                            </span>
+                        )}
+                    </div>
+                    <div className="flex-1 text-gray-500">{formatDriveDate(file.uploaded_at)}</div>
+                    <div className="flex-1 text-gray-500">{formatFileSize(file.size)}</div>
+                    <div className="relative flex-1 text-end">
+                        <Button
+                            className="px-2 py-1 text-gray-500 hover:text-gray-700"
+                            onClick={(event) => {
+                                event.stopPropagation();
+                                setOpenMenuKey(openMenuKey === `file-${file.uuid}` ? null : `file-${file.uuid}`);
+                            }}
+                        >
+                            <i className="fa-solid fa-ellipsis-vertical"></i>
+                        </Button>
+
+                        {openMenuKey === `file-${file.uuid}` && (
+                            <div className="absolute right-0 top-8 z-10 w-48 bg-white p-1 shadow-lg">
+                                <Button
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                    onClick={() => {
+                                        setOpenMenuKey(null);
+                                        onShareFile?.(file);
+                                    }}
+                                >   
+                                    <i className="fa-solid fa-share-nodes"></i>
+                                    Chia sẻ
+                                </Button>
+                                <Button
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
+                                    onClick={() => {
+                                        setOpenMenuKey(null);
+                                        onDownloadFile?.(file);
+                                    }}
+                                >
+                                    <i className="fa-solid fa-download"></i>
+                                    Tải xuống
+                                </Button>
+                                <Button
+                                    className="flex items-center gap-2 w-full px-3 py-2 text-left text-sm text-red-600 hover:bg-red-50"
+                                    onClick={() => {
+                                        setOpenMenuKey(null);
+                                        onDeleteFile?.(file);
+                                    }}
+                                >
+                                    <i className="fa-solid fa-trash"></i>
+                                    Xóa
+                                </Button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            ))}
         </div>
-    );
-};
+    )
+}
 
 export default FileExplorer;

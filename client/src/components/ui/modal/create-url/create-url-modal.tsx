@@ -79,7 +79,7 @@ const CreateUrlModal = ({ isOpen, onClose, onSubmit, submitting = false }: Creat
                     </label>
 
                     <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:justify-end">
-                        <Button type="button" className="rounded-md border border-gray-300/90 bg-white px-5 py-2.5 text-gray-900 hover:bg-gray-50" onClick={onClose}>
+                        <Button  className="rounded-md border border-gray-300/90 bg-white px-5 py-2.5 text-gray-900 hover:bg-gray-50" onClick={onClose}>
                             Hủy
                         </Button>
                         <Button type="submit" className="rounded-md bg-[#1a73e8] px-5 py-2.5 text-white hover:bg-blue-700" disabled={submitting}>

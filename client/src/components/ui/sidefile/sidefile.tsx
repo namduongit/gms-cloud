@@ -4,6 +4,7 @@ import { useNotificate } from "../../../common/hooks/useNotificate";
 import { usePlanUsage } from "../../../common/hooks/usePlanUsage";
 import { formatDate } from "../../../services/utils/date";
 import { formatFileSize } from "../../../services/utils/file";
+import { useEffect, useState } from "react";
 
 interface SideFileProps {
     file: FileResponse;
@@ -16,9 +17,35 @@ const SideFile = ({ file, onClose, onFileDeleted, resolveFileFolderName }: SideF
     const { DownloadFile, DeleteFile } = FileModule;
     const { showToast } = useNotificate();
     const { refreshPlanUsage } = usePlanUsage();
+    const [previewError, setPreviewError] = useState(false);
 
     const isImageFile = file.content_type?.startsWith("image/") || file.file_type?.toLowerCase() === "image";
     const imagePreviewUrl = `${import.meta.env.VITE_SERVER_URL}/api/public/images/${file.uuid}`;
+
+    useEffect(() => {
+        setPreviewError(false);
+    }, [file.uuid]);
+
+    const handleCopyPublicImageUrl = async () => {
+        try {
+            await navigator.clipboard.writeText(imagePreviewUrl);
+            showToast({
+                type: "success",
+                title: "Đã copy link",
+                message: "Link public của ảnh đã được copy.",
+            });
+        } catch {
+            showToast({
+                type: "error",
+                title: "Copy thất bại",
+                message: "Không thể copy link public của ảnh.",
+            });
+        }
+    };
+
+    const handleOpenPublicImageUrl = () => {
+        window.open(imagePreviewUrl, "_blank", "noopener,noreferrer");
+    };
 
     const handleDownloadFile = async (file: FileResponse) => {
         try {
@@ -74,14 +101,47 @@ const SideFile = ({ file, onClose, onFileDeleted, resolveFileFolderName }: SideF
                     <p className="truncate text-sm font-semibold text-gray-900">{file.file_name}</p>
                     <p className="mt-1 text-xs text-gray-500">{file.content_type}</p>
                     {isImageFile && (
-                        <a
-                            href={imagePreviewUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="mt-2 inline-flex text-xs font-semibold text-blue-500 hover:underline"
-                        >
-                            Xem ảnh preview
-                        </a>
+                        <div className="mt-3 space-y-3">
+                            <div className="overflow-hidden rounded-xl border border-gray-200 bg-gray-50">
+                                {!previewError ? (
+                                    <img
+                                        src={imagePreviewUrl}
+                                        alt={file.file_name}
+                                        className="h-52 w-full object-contain"
+                                        onError={() => setPreviewError(true)}
+                                    />
+                                ) : (
+                                    <div className="grid h-40 w-full place-items-center text-xs text-gray-500">
+                                        Không thể xem trước ảnh này.
+                                    </div>
+                                )}
+                            </div>
+
+                            <div className="rounded-xl border border-gray-200 bg-gray-50/80 p-3">
+                                <p className="text-xs font-semibold text-gray-700">Link public</p>
+                                <input
+                                    readOnly
+                                    value={imagePreviewUrl}
+                                    className="mt-2 w-full rounded-lg border border-gray-300/90 bg-white px-3 py-2 text-xs text-gray-700"
+                                />
+                                <div className="mt-2 flex items-center gap-2">
+                                    <button
+                                        type="button"
+                                        className="rounded-lg border border-gray-300/90 bg-white px-3 py-1.5 text-xs font-semibold text-gray-700 hover:bg-gray-100"
+                                        onClick={() => void handleCopyPublicImageUrl()}
+                                    >
+                                        Copy link
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className="rounded-lg bg-[#1a73e8] px-3 py-1.5 text-xs font-semibold text-white hover:bg-blue-700"
+                                        onClick={handleOpenPublicImageUrl}
+                                    >
+                                        Mở link
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     )}
                 </div>
 

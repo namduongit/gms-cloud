@@ -1,22 +1,23 @@
 import { type FormEvent, useEffect, useState } from "react";
 import Button from "../../button/button";
 
-interface CreateFolderModalProps {
+interface RenameFolderModalProps {
     isOpen: boolean;
+    initialName: string;
     onClose: () => void;
     onSubmit?: (folderName: string) => boolean | void | Promise<boolean | void>;
 }
 
-const CreateFolderModal = ({ isOpen, onClose, onSubmit }: CreateFolderModalProps) => {
+const RenameFolderModal = ({ isOpen, initialName, onClose, onSubmit }: RenameFolderModalProps) => {
     const [folderName, setFolderName] = useState("");
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     useEffect(() => {
-        if (!isOpen) {
-            setFolderName("");
+        if (isOpen) {
+            setFolderName(initialName);
             setIsSubmitting(false);
         }
-    }, [isOpen]);
+    }, [isOpen, initialName]);
 
     if (!isOpen) {
         return null;
@@ -24,14 +25,15 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit }: CreateFolderModalProps
 
     const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        if (!folderName.trim()) {
+        const nextName = folderName.trim();
+        if (!nextName) {
             return;
         }
 
         setIsSubmitting(true);
 
         try {
-            const result = await Promise.resolve(onSubmit?.(folderName.trim()));
+            const result = await Promise.resolve(onSubmit?.(nextName));
             if (result !== false) {
                 onClose();
             }
@@ -48,8 +50,8 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit }: CreateFolderModalProps
             >
                 <div className="flex items-center justify-between border-b border-gray-300/90 px-6 py-4">
                     <div>
-                        <h3 className="text-lg font-semibold text-gray-900">Tạo thư mục</h3>
-                        <p className="mt-1 text-sm text-gray-500">Nhập tên thư mục mới để tạo nhanh.</p>
+                        <h3 className="text-lg font-semibold text-gray-900">Đổi tên thư mục</h3>
+                        <p className="mt-1 text-sm text-gray-500">Nhập tên mới cho thư mục đã chọn.</p>
                     </div>
                     <Button
                         type="button"
@@ -63,7 +65,7 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit }: CreateFolderModalProps
 
                 <div className="space-y-4 px-6 py-5">
                     <label className="block text-sm font-semibold text-gray-900">
-                        Tên thư mục
+                        Tên thư mục mới
                         <input
                             type="text"
                             className="mt-2 w-full rounded-xl border border-gray-300/90 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/15"
@@ -88,9 +90,9 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit }: CreateFolderModalProps
                     <Button
                         type="submit"
                         className="rounded-md bg-[#1a73e8] px-5 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                        disabled={!folderName.trim() || isSubmitting}
+                        disabled={!folderName.trim() || folderName.trim() === initialName.trim() || isSubmitting}
                     >
-                        {isSubmitting ? "Đang tạo..." : "Tạo thư mục"}
+                        {isSubmitting ? "Đang lưu..." : "Lưu tên mới"}
                     </Button>
                 </div>
             </form>
@@ -98,4 +100,4 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit }: CreateFolderModalProps
     );
 };
 
-export default CreateFolderModal;
+export default RenameFolderModal;

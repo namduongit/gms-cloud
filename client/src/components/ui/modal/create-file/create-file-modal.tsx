@@ -1,34 +1,25 @@
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import Button from "../../button/button";
+import { formatFileSize } from "../../../../services/utils/file";
 
-interface CreateFileModalProps {
+type CreateFileModalProps = {
     isOpen: boolean;
     onClose: () => void;
-    onSubmit?: (file: File) => void | Promise<void>;
+    onSubmit?: (files: File[]) => void | Promise<void>;
     destinationLabel?: string;
 }
 
-const formatFileSize = (size: number) => {
-    if (size < 1024) {
-        return `${size} B`;
-    }
-
-    if (size < 1024 * 1024) {
-        return `${(size / 1024).toFixed(1)} KB`;
-    }
-
-    return `${(size / (1024 * 1024)).toFixed(1)} MB`;
-};
-
 const CreateFileModal = ({ isOpen, onClose, onSubmit, destinationLabel = "root" }: CreateFileModalProps) => {
-    const [selectedFile, setSelectedFile] = useState<File | null>(null);
+    const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
     const [isDragging, setIsDragging] = useState(false);
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const fileInputRef = useRef<HTMLInputElement | null>(null);
 
     useEffect(() => {
         if (!isOpen) {
-            setSelectedFile(null);
+            setSelectedFiles([]);
             setIsDragging(false);
+            setIsSubmitting(false);
         }
     }, [isOpen]);
 
@@ -36,55 +27,69 @@ const CreateFileModal = ({ isOpen, onClose, onSubmit, destinationLabel = "root" 
         return null;
     }
 
-    const handleFilePick = (file?: File) => {
-        if (!file) {
+    const handleFilePick = (files?: FileList | File[]) => {
+        if (!files || files.length === 0) {
             return;
         }
 
-        setSelectedFile(file);
+        setSelectedFiles(Array.from(files));
     };
 
     const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-        const file = event.target.files?.[0];
-        handleFilePick(file);
+        handleFilePick(event.target.files ?? undefined);
         event.target.value = "";
     };
 
     const handleDrop = (event: DragEvent<HTMLDivElement>) => {
         event.preventDefault();
         setIsDragging(false);
-        handleFilePick(event.dataTransfer.files?.[0]);
+        handleFilePick(event.dataTransfer.files ?? undefined);
     };
 
-    const handleSubmit = () => {
-        if (!selectedFile) {
+    const handleSubmit = async () => {
+        if (selectedFiles.length === 0 || isSubmitting) {
             return;
         }
 
-        void Promise.resolve(onSubmit?.(selectedFile));
+        setIsSubmitting(true);
+
+        try {
+            await Promise.resolve(onSubmit?.(selectedFiles));
+        } finally {
+            setIsSubmitting(false);
+        }
     };
+
+    const handleRemoveFile = (targetFile: File) => {
+        setSelectedFiles((previous) =>
+            previous.filter(
+                (file) => !(file.name === targetFile.name && file.lastModified === targetFile.lastModified)
+            )
+        );
+    };
+
+    const totalSelectedSize = selectedFiles.reduce((total, file) => total + file.size, 0);
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2937]/45 px-4 py-6">
-            <div className="flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl border border-gray-300/90 bg-white shadow-[0_35px_120px_rgba(34,61,102,0.22)]">
-                <div className="flex items-start justify-between border-b border-gray-300/90 px-6 py-5 md:px-8">
+            <div className="flex max-h-[90vh] w-full max-w-3xl flex-col overflow-hidden rounded-xl bg-white shadow">
+                <div className="flex items-center justify-between border-b border-gray-300/90 px-6 py-4">
                     <div>
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Tải tệp lên</p>
-                        <h3 className="mt-2 text-2xl font-semibold text-gray-900">Chọn file từ máy hoặc kéo thả vào đây</h3>
-                        <p className="mt-2 text-sm text-gray-500">Tệp sẽ được lưu vào <span className="font-semibold text-gray-900">{destinationLabel}</span> sau khi bạn xác nhận.</p>
+                        <h3 className="text-lg font-semibold text-gray-900">Tải file lên</h3>
+                        <p className="mt-1 text-sm text-gray-500">Kéo thả hoặc chọn nhiều file từ máy của bạn.</p>
                     </div>
                     <Button
-                        type="button"
-                        className="rounded-md border border-gray-300/90 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
+                        
+                        className="rounded-md border border-gray-300/90 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
                         onClick={onClose}
                     >
                         Đóng
                     </Button>
                 </div>
 
-                <div className="grid gap-6 px-6 py-6 md:grid-cols-[1.2fr_0.8fr] md:px-8">
+                <div className="space-y-4 px-6 py-5">
                     <div
-                        className={`flex min-h-80 flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition ${
+                        className={`flex min-h-52 flex-col items-center justify-center rounded-xl border-2 border-dashed px-6 py-8 text-center transition ${
                             isDragging ? "border-[#1a73e8] bg-[#f8fbff]" : "border-gray-300/90 bg-white"
                         }`}
                         onDragEnter={(event) => {
@@ -103,23 +108,24 @@ const CreateFileModal = ({ isOpen, onClose, onSubmit, destinationLabel = "root" 
                         </div>
                         <h4 className="mt-5 text-xl font-semibold text-gray-900">Kéo thả file vào đây</h4>
                         <p className="mt-2 max-w-md text-sm leading-6 text-gray-500">
-                            Hoặc chọn trực tiếp từ máy local. File sẽ được upload khi bạn xác nhận.
+                            Hỗ trợ chọn một hoặc nhiều file cùng lúc.
                         </p>
 
                         <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row">
                             <Button
                                 className="rounded-md bg-[#1a73e8] px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
                                 onClick={() => fileInputRef.current?.click()}
+                                disabled={isSubmitting}
                             >
                                 Chọn file từ máy
                             </Button>
                             <Button
                                 className="rounded-md border border-gray-300/90 bg-white px-3 py-2 text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
                                 onClick={() => {
-                                    setSelectedFile(null);
+                                    setSelectedFiles([]);
                                     fileInputRef.current && (fileInputRef.current.value = "");
                                 }}
-                                disabled={!selectedFile}
+                                disabled={selectedFiles.length === 0 || isSubmitting}
                             >
                                 Bỏ chọn
                             </Button>
@@ -128,57 +134,65 @@ const CreateFileModal = ({ isOpen, onClose, onSubmit, destinationLabel = "root" 
                         <input
                             ref={fileInputRef}
                             type="file"
+                            multiple
                             className="hidden"
                             onChange={handleInputChange}
                         />
                     </div>
 
-                    <div className="rounded-xl border border-gray-300/90 bg-white p-5 shadow-[0_12px_30px_rgba(34,61,102,0.06)]">
-                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Thông tin file</p>
-
-                        {selectedFile ? (
-                            <div className="mt-4 space-y-4">
-                                <div className="rounded-lg border border-gray-300/90 bg-[#f8fbff] p-4">
-                                    <p className="truncate text-sm font-semibold text-gray-900">{selectedFile.name}</p>
-                                    <p className="mt-1 text-xs text-gray-500">{selectedFile.type || "Không xác định"}</p>
-                                    <p className="mt-1 text-xs text-gray-500">{formatFileSize(selectedFile.size)}</p>
-                                </div>
-
-                                <div className="space-y-2 rounded-lg border border-gray-300/90 bg-white p-4 text-sm text-gray-500">
-                                    <p>
-                                        <span className="font-semibold text-gray-900">Đích đến:</span> {destinationLabel}
-                                    </p>
-                                    <p>
-                                        <span className="font-semibold text-gray-900">Trạng thái:</span> Chờ xác nhận upload
-                                    </p>
-                                </div>
-
-                                <div className="flex flex-col gap-3">
-                                    <Button
-                                        type="button"
-                                        onClick={handleSubmit}
-                                        className="w-full rounded-md bg-[#1a73e8] px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
-                                    >
-                                        Tải file lên
-                                    </Button>
-                                    <Button
-                                        type="button"
-                                        onClick={onClose}
-                                        className="w-full rounded-md border border-gray-300/90 px-4 py-2 text-gray-900 hover:bg-gray-50 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        Hủy
-                                    </Button>
-                                </div>
+                    <div className="rounded-xl border border-gray-300/90 bg-white p-4">
+                        <div className="flex items-center justify-between gap-3">
+                            <p className="text-sm font-semibold text-gray-900">Danh sách file đã chọn ({selectedFiles.length})</p>
+                            <p className="text-xs text-gray-500">Tổng dung lượng: {formatFileSize(totalSelectedSize)}</p>
+                        </div>
+                        {selectedFiles.length > 0 ? (
+                            <div className="mt-3 max-h-48 space-y-2 overflow-y-auto pr-1">
+                                {selectedFiles.map((file) => (
+                                    <div key={`${file.name}-${file.lastModified}`} className="rounded-md border border-gray-300/90 bg-sky-50/30 px-3 py-2">
+                                        <div className="flex items-center justify-between gap-3">
+                                            <div className="min-w-0">
+                                                <p className="truncate text-sm font-semibold text-gray-900">{file.name}</p>
+                                                <p className="mt-1 text-xs text-gray-500">{file.type || "Không xác định"} - {formatFileSize(file.size)}</p>
+                                            </div>
+                                            <Button
+                                                className="rounded-md border border-gray-300/90 bg-white px-2 py-1 text-xs text-red-600 hover:bg-red-50"
+                                                onClick={() => handleRemoveFile(file)}
+                                                aria-label={`Xóa ${file.name}`}
+                                                title="Xóa file"
+                                            >
+                                                <i className="fa-solid fa-trash"></i>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                ))}
                             </div>
                         ) : (
-                            <div className="mt-4 rounded-lg border border-dashed border-gray-300/90 bg-white px-4 py-10 text-center">
-                                <p className="text-sm font-semibold text-gray-900">Chưa chọn file</p>
-                                <p className="mt-2 text-sm leading-6 text-gray-500">
-                                    Kéo thả một file hoặc bấm nút chọn file để bắt đầu.
-                                </p>
-                            </div>
+                            <p className="mt-3 text-sm text-gray-500">Chưa có file nào được chọn.</p>
                         )}
                     </div>
+
+                    <div className="rounded-xl border border-gray-300/90 bg-white p-4 text-sm text-gray-600">
+                        <span className="font-semibold text-gray-900">Thư mục:</span> {destinationLabel}
+                    </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 border-t border-gray-300/90 px-6 py-4">
+                    <Button
+                        onClick={onClose}
+                        className="rounded-md border border-gray-300/90 px-4 py-2 text-gray-900 hover:bg-gray-50"
+                        type="button"
+                        disabled={isSubmitting}
+                    >
+                        Hủy
+                    </Button>
+                    <Button
+                        onClick={handleSubmit}
+                        type="button"
+                        className="rounded-md bg-[#1a73e8] px-4 py-2 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        disabled={selectedFiles.length === 0 || isSubmitting}
+                    >
+                        {isSubmitting ? "Đang tải..." : "Tải file lên"}
+                    </Button>
                 </div>
             </div>
         </div>

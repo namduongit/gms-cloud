@@ -1,3 +1,4 @@
+import { createElement, useEffect } from "react";
 import { Link } from "react-router";
 import PublicLayout from "../../components/layout/public-layout";
 
@@ -17,72 +18,146 @@ const highlights = [
 ];
 
 const HomePage = () => {
+    useEffect(() => {
+        const existingScript = document.querySelector("script[data-dotlottie-player='true']");
+        if (existingScript) {
+            return;
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.10/dist/dotlottie-wc.js";
+        script.type = "module";
+        script.setAttribute("data-dotlottie-player", "true");
+        document.body.appendChild(script);
+    }, []);
+
     return (
         <PublicLayout>
-        <section className="grid gap-4 lg:grid-cols-[1.08fr_0.92fr]">
-            <div className="rounded-3xl border border-gray-300/90 bg-white p-6 shadow-[0_14px_40px_rgba(34,61,102,0.09)] md:p-10">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">GMS Cloud</p>
-                <h1 className="mt-3 max-w-xl text-4xl font-semibold leading-tight text-gray-900 md:text-6xl">
-                    Không gian quản lý file, URL và API theo phong cách Google Drive.
-                </h1>
-                <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
-                    Một workspace duy nhất để lưu file vào folder hoặc root, quản lý đường dẫn ngắn, và
-                    theo dõi tài khoản bằng giao diện sáng, sạch, quen thuộc.
-                </p>
+            <section className="space-y-6">
+                <div className="grid items-center gap-5 rounded-xl border border-[#d6e4fb] bg-linear-to-b from-[#f8fbff] to-white p-5 md:grid-cols-[1.2fr_0.8fr] md:p-8">
+                    <div>
+                        <p className="text-sm font-semibold text-[#1a73e8]">GMS Cloud</p>
+                        <h1 className="mt-2 text-3xl font-semibold leading-tight text-gray-900 md:text-5xl">
+                            Nơi mọi file và URL của bạn được sắp xếp rõ ràng.
+                        </h1>
+                        <p className="mt-4 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
+                            Lưu trữ file, chia sẻ ảnh bằng link public, theo dõi plan và quản lý API token trong cùng một dashboard.
+                        </p>
 
-                <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-                    <Link
-                        to="/auth/register"
-                        className="inline-flex items-center justify-center rounded-full bg-[#1a73e8] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
-                    >
-                        Bắt đầu ngay
-                    </Link>
-                    <Link
-                        to="/auth/login"
-                        className="inline-flex items-center justify-center rounded-full border border-gray-300/90 px-6 py-3 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
-                    >
-                        Đăng nhập
-                    </Link>
-                </div>
+                        <div className="mt-6 flex flex-col gap-3 sm:flex-row">
+                            <Link
+                                to="/auth/register"
+                                className="inline-flex items-center justify-center rounded-md bg-[#1a73e8] px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                            >
+                                <i className="fa-solid fa-rocket mr-2"></i>
+                                Dùng thử ngay
+                            </Link>
+                            <Link
+                                to="/auth/login"
+                                className="inline-flex items-center justify-center rounded-md border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-100"
+                            >
+                                <i className="fa-solid fa-right-to-bracket mr-2"></i>
+                                Đăng nhập
+                            </Link>
+                        </div>
+                    </div>
 
-                <div className="mt-10 grid gap-3 md:grid-cols-3">
-                    {highlights.map((item) => (
-                        <article key={item.title} className="rounded-2xl border border-gray-300/90 bg-[#f8fbff] p-4">
-                            <p className="text-sm font-semibold text-gray-900">{item.title}</p>
-                            <p className="mt-2 text-xs leading-5 text-gray-500">{item.description}</p>
-                        </article>
-                    ))}
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                <div className="rounded-3xl border border-gray-300/90 bg-white p-6 shadow-[0_14px_40px_rgba(34,61,102,0.09)] md:p-8">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Preview</p>
-                    <h2 className="mt-3 text-2xl font-semibold text-gray-900">Cấu trúc workspace</h2>
-                    <div className="mt-5 space-y-3">
-                        {[
-                            ["Header", "Logo GMS, tìm kiếm và account action."],
-                            ["Sidebar trái", "File, URL, Plan theo đúng thứ tự điều hướng."],
-                            ["Nội dung phải", "Card trắng, viền mảnh, bóng nhẹ, dễ đọc."],
-                        ].map(([label, description]) => (
-                            <div key={label} className="rounded-2xl border border-gray-300/90 bg-white px-4 py-3">
-                                <p className="text-sm font-semibold text-gray-900">{label}</p>
-                                <p className="mt-1 text-xs text-gray-500">{description}</p>
-                            </div>
-                        ))}
+                    <div className="flex justify-center">
+                        {createElement("dotlottie-wc", {
+                            src: "https://lottie.host/a76e30db-976c-45e7-9bed-efe7c84c8317/GKUs9NOScO.lottie",
+                            style: { width: "280px", height: "280px" },
+                            autoplay: true,
+                            loop: true,
+                        })}
                     </div>
                 </div>
 
-                <div className="rounded-3xl border border-gray-300/90 bg-[#1a73e8] p-6 text-white shadow-[0_14px_40px_rgba(34,61,102,0.12)] md:p-8">
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/80">Quick start</p>
-                    <h2 className="mt-3 text-2xl font-semibold">Đăng nhập để vào dashboard</h2>
-                    <p className="mt-2 text-sm leading-6 text-white/85">
-                        Sau khi vào hệ thống, bạn có thể quản lý file trong folder, upfile vào root hoặc vào
-                        thư mục cụ thể, và di chuyển qua breadcrumb.
-                    </p>
+                <div className="grid gap-3 md:grid-cols-3">
+                    {highlights.map((item) => (
+                        <article key={item.title} className="rounded-lg border border-gray-300/90 bg-white p-4">
+                            <p className="text-base font-semibold text-gray-900">{item.title}</p>
+                            <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
+                        </article>
+                    ))}
                 </div>
-            </div>
-        </section>
+
+                <div className="grid gap-4 rounded-xl border border-gray-300/90 bg-white p-5 md:grid-cols-[1.05fr_0.95fr] md:p-6">
+                    <div>
+                        <h2 className="text-xl font-semibold text-gray-900">Dịch vụ & tài liệu</h2>
+                        <p className="mt-2 text-sm text-gray-500">Truy cập nhanh các khu vực chính và tài liệu tích hợp.</p>
+
+                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                            <Link to="/page/file" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
+                                <span className="block text-xs text-gray-500">Storage</span>
+                                <i className="fa-regular fa-folder-open mr-2 text-[#1a73e8]"></i>
+                                Quản lý file & folder
+                            </Link>
+                            <Link to="/page/url" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
+                                <span className="block text-xs text-gray-500">Short Link</span>
+                                <i className="fa-solid fa-link mr-2 text-[#1a73e8]"></i>
+                                Quản lý URL
+                            </Link>
+                            <Link to="/page/account/info" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
+                                <span className="block text-xs text-gray-500">Account</span>
+                                <i className="fa-regular fa-user mr-2 text-[#1a73e8]"></i>
+                                Hồ sơ tài khoản
+                            </Link>
+                            <Link to="/page/account/api" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
+                                <span className="block text-xs text-gray-500">Developer</span>
+                                <i className="fa-solid fa-code mr-2 text-[#1a73e8]"></i>
+                                API Dashboard
+                            </Link>
+                        </div>
+
+                        <div className="mt-4 flex flex-wrap gap-2">
+                            <a
+                                href="/docs.md"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="inline-flex items-center rounded-md bg-[#1a73e8] px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                            >
+                                <i className="fa-regular fa-file-lines mr-2"></i>
+                                Docs
+                            </a>
+                            <Link
+                                to="/page/account/api"
+                                className="inline-flex items-center rounded-md border border-gray-300/90 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
+                            >
+                                <i className="fa-solid fa-book-open mr-2 text-[#1a73e8]"></i>
+                                API Reference
+                            </Link>
+                        </div>
+                    </div>
+
+                    <div className="rounded-lg border border-[#d6e4fb] bg-linear-to-b from-[#f8fbff] to-white p-4">
+                        <h3 className="text-base font-semibold text-gray-900">Liên hệ triển khai</h3>
+                        <p className="mt-1 text-sm text-gray-500">Sẵn sàng hỗ trợ tích hợp, vận hành và tùy biến dịch vụ.</p>
+
+                        <div className="mt-4 space-y-2">
+                            <a href="mailto:nguyennamduong205@gmail.com" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <span><i className="fa-regular fa-envelope mr-2 text-[#1a73e8]"></i>Email</span>
+                                <span className="font-medium text-gray-900">nguyennamduong205@gmail.com</span>
+                            </a>
+                            <a href="tel:0388853835" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <span><i className="fa-solid fa-phone mr-2 text-[#1a73e8]"></i>SĐT</span>
+                                <span className="font-medium text-gray-900">0388853835</span>
+                            </a>
+                            <a href="https://github.com/namduongit" target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <span><i className="fa-brands fa-github mr-2 text-[#1a73e8]"></i>GitHub</span>
+                                <span className="font-medium text-gray-900">namduongit</span>
+                            </a>
+                            <a href="https://facebook.com/namduongit" target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+                                <span><i className="fa-brands fa-facebook mr-2 text-[#1a73e8]"></i>Facebook</span>
+                                <span className="font-medium text-gray-900">namduongit</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+
+                <footer className="border-t border-gray-300/90 pt-4 text-sm text-gray-500">
+                    <p>GMS Cloud Service - File, URL, API và Account Management.</p>
+                </footer>
+            </section>
         </PublicLayout>
     );
 };

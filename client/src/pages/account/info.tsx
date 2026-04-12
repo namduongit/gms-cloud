@@ -7,7 +7,7 @@ import { ProfileModule } from "../../services/modules/profile.module";
 import type { ProfileResponse, UpdateProfileForm } from "../../services/types/profile.type";
 
 const inputClasses =
-    "mt-2 w-full rounded-xl border border-gray-300/90 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/15";
+    "mt-2 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/15";
 
 const defaultForm: UpdateProfileForm = {
     username: "",
@@ -84,23 +84,22 @@ const AccountInfoPage = () => {
     };
 
     return (
-        <div className="space-y-5">
-            <header className="rounded-3xl border border-gray-300/90 bg-[#f8fbff] p-5 md:p-7">
-                <p className="text-sm font-semibold text-gray-500">Tài khoản</p>
-                <h1 className="mt-1 text-3xl font-semibold text-gray-900 md:text-4xl">Thông tin hồ sơ</h1>
-                <p className="mt-2 text-sm text-gray-500">Email lấy từ phiên đăng nhập và không chỉnh sửa. Các thông tin khác có thể cập nhật trực tiếp.</p>
+        <div className="space-y-4">
+            <header className="p-2">
+                <h1 className="text-2xl font-semibold text-gray-900">Thông tin hồ sơ</h1>
+                <span className="mt-1 block text-sm text-gray-500">Cập nhật thông tin cá nhân của tài khoản hiện tại.</span>
             </header>
 
-            <form className="rounded-3xl border border-gray-300/90 bg-white p-5 md:p-7" onSubmit={handleSubmit}>
+            <form className="rounded-lg border border-gray-300/90 bg-white p-4 md:p-5" onSubmit={handleSubmit}>
                 <div className="grid gap-4 md:grid-cols-2">
                     <div>
                         <label className="text-sm font-semibold text-gray-900" htmlFor="email">Email</label>
-                        <input id="email" name="email" className={`${inputClasses} bg-[#f6f8fc]`} value={authenticate.state?.email} disabled readOnly />
+                        <input id="email" name="email" className={`${inputClasses} bg-gray-100`} value={authenticate.state?.email} disabled readOnly />
                     </div>
 
                     <div>
                         <label className="text-sm font-semibold text-gray-900" htmlFor="plan">Gói hiện tại</label>
-                        <input id="plan" name="plan" className={`${inputClasses} bg-[#f6f8fc]`} value={authenticate.state?.plan?.name} disabled readOnly />
+                        <input id="plan" name="plan" className={`${inputClasses} bg-gray-100`} value={authenticate.state?.plan?.name} disabled readOnly />
                     </div>
 
                     <div>
@@ -136,7 +135,7 @@ const AccountInfoPage = () => {
 
                 <div className="mt-6 flex items-center justify-between gap-3">
                     <p className="text-sm text-gray-500">{loadingProfile ? "Đang tải hồ sơ..." : "Bạn có thể cập nhật và lưu thông tin bất kỳ lúc nào."}</p>
-                    <Button type="submit" disabled={loadingProfile || savingProfile}>
+                    <Button type="submit" disabled={loadingProfile || savingProfile} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100">
                         {savingProfile ? "Đang lưu..." : "Lưu thay đổi"}
                     </Button>
                 </div>

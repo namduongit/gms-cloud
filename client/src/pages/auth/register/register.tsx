@@ -1,4 +1,4 @@
-import { type ChangeEvent, type FormEvent, useState } from "react";
+import { createElement, type ChangeEvent, type FormEvent, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router";
 import type { RegisterResponse, RegisterForm } from "../../../services/types/auth.type";
 
@@ -8,7 +8,7 @@ import { useExecute } from "../../../common/hooks/useExecute";
 import { useNotificate } from "../../../common/hooks/useNotificate";
 
 const inputClasses =
-	"mt-2 w-full rounded-xl border border-gray-300/90 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 transition focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/15";
+	"mt-2 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/15";
 
 
 const RegisterPage = () => {
@@ -18,6 +18,19 @@ const RegisterPage = () => {
 	const navigate = useNavigate();
 
 	const [form, setForm] = useState<RegisterForm>({ email: "", password: "", confirmPassword: "" });
+
+	useEffect(() => {
+		const existingScript = document.querySelector("script[data-dotlottie-player='true']");
+		if (existingScript) {
+			return;
+		}
+
+		const script = document.createElement("script");
+		script.src = "https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.10/dist/dotlottie-wc.js";
+		script.type = "module";
+		script.setAttribute("data-dotlottie-player", "true");
+		document.body.appendChild(script);
+	}, []);
 
 	const handleChange = (event: ChangeEvent<HTMLInputElement>) => {
 		const { name, value } = event.target;
@@ -53,25 +66,25 @@ const RegisterPage = () => {
 	return (
 		<PublicLayout>
 			<div className="grid gap-4 lg:grid-cols-[1.02fr_0.98fr]">
-				<section className="rounded-3xl border border-gray-300/90 bg-white p-6 shadow-[0_14px_40px_rgba(34,61,102,0.09)] md:p-10">
-					<p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Tạo tài khoản</p>
-					<h1 className="mt-3 text-4xl font-semibold text-gray-900 md:text-5xl">Bắt đầu với GMS Cloud</h1>
+				<section className="rounded-lg border border-[#d6e4fb] bg-linear-to-b from-[#f8fbff] to-white p-6 md:p-8">
+					<p className="text-sm font-semibold text-[#1a73e8]">Tạo tài khoản</p>
+					<h1 className="mt-2 text-3xl font-semibold text-gray-900 md:text-4xl">Bắt đầu với GMS Cloud</h1>
 					<p className="mt-4 text-sm leading-6 text-gray-500">
 						Tạo tài khoản để dùng chung hệ thống quản lý file, URL, API và hồ sơ trong cùng một không gian.
 					</p>
 
-					<div className="mt-8 space-y-3 rounded-2xl border border-gray-300/90 bg-[#f8fbff] p-5">
-						<p className="text-sm font-semibold text-gray-900">Điểm chính</p>
-						<ul className="space-y-2 text-sm text-gray-500">
-							<li>• Kiểu giao diện đồng bộ với dashboard bên trong.</li>
-							<li>• Tập trung vào file, folder, breadcrumb và thao tác tài khoản.</li>
-							<li>• Các bước tạo tài khoản ngắn, rõ và dễ tiếp cận.</li>
-						</ul>
+					<div className="mt-6 flex justify-center">
+						{createElement("dotlottie-wc", {
+							src: "https://lottie.host/8ddc56b3-da5b-44e3-b722-c15356930981/rDzwRhPzBZ.lottie",
+							style: { width: "260px", height: "260px" },
+							autoplay: true,
+							loop: true,
+						})}
 					</div>
 				</section>
 
-				<section className="rounded-3xl border border-gray-300/90 bg-white p-6 shadow-[0_14px_40px_rgba(34,61,102,0.09)] md:p-10">
-					<form className="space-y-5" onSubmit={handleSubmit}>
+				<section className="flex items-center rounded-lg border border-gray-300/90 bg-white p-6 md:p-8">
+					<form className="mx-auto w-full max-w-md space-y-5" onSubmit={handleSubmit}>
 						<div>
 							<label className="text-sm font-semibold text-gray-900" htmlFor="email">
 								Email
@@ -126,14 +139,14 @@ const RegisterPage = () => {
 
 						<button
 							type="submit"
-							className="w-full rounded-full bg-[#1a73e8] px-6 py-3 text-sm font-semibold text-white transition hover:bg-blue-700"
+							className="w-full rounded-md bg-[#1a73e8] px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700"
 						>
 							Tạo tài khoản
 						</button>
 
 						<p className="text-center text-sm text-gray-500">
 							Đã có tài khoản?{' '}
-							<Link className="font-semibold text-blue-500 hover:underline" to="/auth/login">
+							<Link className="font-semibold text-[#1a73e8] hover:underline" to="/auth/login">
 								Đăng nhập
 							</Link>
 						</p>

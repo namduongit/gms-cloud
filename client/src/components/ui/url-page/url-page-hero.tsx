@@ -7,29 +7,26 @@ interface UrlPageHeroProps {
 
 const UrlPageHero = ({ onOpenCreate, onSync }: UrlPageHeroProps) => {
     return (
-        <header className="rounded-3xl border border-gray-300/90 bg-[#f8fbff] p-5 md:p-7">
-            <div>
-                <p className="text-sm font-semibold text-[#5f6368]">URL Manager</p>
-                <h1 className="mt-1 text-3xl font-semibold text-[#202124] md:text-4xl">Kho đường dẫn rút gọn</h1>
-                <p className="mt-2 text-sm text-[#5f6368]">Cloud quản lý link rút gọn nhanh, gọn và đồng bộ.</p>
-            </div>
+        <header className="p-2 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                <div>
+                    <h1 className="text-2xl font-semibold text-gray-900">Quản lý URL</h1>
+                    <span className="mt-1 block text-sm text-gray-500">Tạo, tìm kiếm và quản lý link rút gọn của bạn</span>
+                </div>
 
-            <div className="mt-5 flex flex-col gap-3 md:flex-row">
+                <div className="flex flex-col gap-2 sm:flex-row">
                 <Button
-                    className="rounded-md border border-gray-300/90 bg-white px-5 py-2 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#edf3fe]"
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100"
                     onClick={onOpenCreate}
                 >
-                    <i className="fa-solid fa-link mr-2"></i>
                     Tạo URL mới
                 </Button>
                 <Button
-                    className="rounded-md border border-gray-300/90 bg-white px-5 py-2 text-sm font-semibold text-[#1a73e8] transition hover:bg-[#edf3fe]"
+                    className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100"
                     onClick={() => void onSync()}
                 >
-                    <i className="fa-solid fa-rotate-right mr-2"></i>
-                    Đồng bộ dữ liệu
+                    Làm mới
                 </Button>
-            </div>
+                </div>
         </header>
     );
 };

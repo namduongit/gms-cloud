@@ -116,7 +116,7 @@ const NotificateProvider = ({ children }: { children: React.ReactNode }) => {
                                 <p className="mt-1 text-sm leading-5 text-gray-500">{toast.options.message}</p>
                             </div>
                             <button
-                                type="button"
+                                
                                 className="mt-0.5 rounded-full px-2 py-1 text-base font-semibold text-gray-500 transition hover:bg-white/70 hover:text-gray-900"
                                 onClick={() => dismissToast(toast.id)}
                             >

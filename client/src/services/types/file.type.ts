@@ -10,6 +10,7 @@ export type FileResponse = {
     file_type: string;
     content_type: string;
     size: number;
+    is_shared: boolean;
 
     folder_uuid: string | null;
     folder_name: string;

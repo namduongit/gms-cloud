@@ -167,13 +167,13 @@ const UrlPage = () => {
     };
 
     return (
-        <div className="space-y-5">
+        <div className="space-y-4">
             <UrlPageHero
                 onOpenCreate={() => setIsCreateModalOpen(true)}
                 onSync={handleReload}
             />
 
-            <section className="rounded-3xl border border-gray-300/90 bg-white p-4 md:p-6">
+            <section>
                 <UrlSearchToolbar
                     searchInput={searchInput}
                     onSearchInputChange={setSearchInput}

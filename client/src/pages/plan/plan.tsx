@@ -82,47 +82,34 @@ const PlanPage = () => {
     }, [plans, currentPlan]);
 
     return (
-        <div className="space-y-5">
-            <header className="rounded-3xl border border-gray-300/90 bg-[#f8fbff] p-5 md:p-7">
+        <div className="space-y-4">
+            <header className="rounded-xl border border-gray-300/90 bg-white p-5">
                 <p className="text-sm font-semibold text-gray-500">Plan</p>
-                <h1 className="mt-1 text-3xl font-semibold text-gray-900 md:text-4xl">Nâng cấp gói dịch vụ</h1>
-                <p className="mt-2 text-sm text-gray-500">Theo dõi gói hiện tại và chọn cấp độ phù hợp với nhu cầu lưu trữ và URL của bạn.</p>
-                <div className="mt-5 overflow-hidden rounded-2xl border border-gray-300/90 bg-white">
-                    <table className="w-full text-left text-sm text-gray-900">
-                        <thead className="bg-white text-xs uppercase tracking-wide text-gray-500">
-                            <tr>
-                                <th className="px-4 py-3">Hạng mục</th>
-                                <th className="px-4 py-3">Giá trị</th>
-                                <th className="px-4 py-3">Ghi chú</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr className="bg-white">
-                                <td className="px-4 py-4 font-semibold text-gray-900">Gói hiện tại</td>
-                                <td className="px-4 py-4 text-gray-500">{currentPlan?.name ?? "Chưa xác định"}</td>
-                                <td className="px-4 py-4 text-gray-500">Đồng bộ thời gian thực từ server</td>
-                            </tr>
-                            <tr className="bg-[#fcfdff]">
-                                <td className="px-4 py-4 font-semibold text-gray-900">Số URL đã dùng</td>
-                                <td className="px-4 py-4 text-gray-500">{myPlanUsage?.used_url ?? 0}/{formatLimit(currentPlan?.url_limit ?? 0, "URL")}</td>
-                                <td className="px-4 py-4 text-gray-500">Tổng số URL đã tạo trong gói hiện tại</td>
-                            </tr>
-                            <tr className="bg-white">
-                                <td className="px-4 py-4 font-semibold text-gray-900">Dung lượng</td>
-                                <td className="px-4 py-4 text-gray-500">{formatToGb(myPlanUsage?.used_storage ?? 0)}/{formatToGb(myPlanUsage?.total_storage ?? 0)}</td>
-                                <td className="px-4 py-4 text-gray-500">Đồng bộ từ API /api/guard/plans</td>
-                            </tr>
-                        </tbody>
-                    </table>
+                <h1 className="mt-1 text-2xl font-semibold text-gray-900">Gói dịch vụ</h1>
+                <p className="mt-1 text-sm text-gray-500">Theo dõi mức sử dụng và so sánh các gói.</p>
+
+                <div className="mt-4 grid gap-3 md:grid-cols-3">
+                    <div className="rounded-lg border border-gray-300/90 bg-white p-3">
+                        <p className="text-xs font-semibold uppercase text-gray-500">Gói hiện tại</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{currentPlan?.name ?? "Chưa xác định"}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-300/90 bg-white p-3">
+                        <p className="text-xs font-semibold uppercase text-gray-500">URL đã dùng</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{myPlanUsage?.used_url ?? 0}/{formatLimit(currentPlan?.url_limit ?? 0, "URL")}</p>
+                    </div>
+                    <div className="rounded-lg border border-gray-300/90 bg-white p-3">
+                        <p className="text-xs font-semibold uppercase text-gray-500">Dung lượng</p>
+                        <p className="mt-1 text-sm font-semibold text-gray-900">{formatToGb(myPlanUsage?.used_storage ?? 0)}/{formatToGb(myPlanUsage?.total_storage ?? 0)}</p>
+                    </div>
                 </div>
             </header>
 
-            <section className="rounded-3xl border border-gray-300/90 bg-white p-5 md:p-6">
-                <h2 className="text-2xl font-semibold text-gray-900">Chọn gói khác</h2>
-                <p className="text-sm text-gray-500">So sánh lợi ích giữa các cấp độ để tìm lựa chọn phù hợp.</p>
-                <div className="mt-6 grid gap-6 lg:grid-cols-3">
+            <section className="rounded-xl border border-gray-300/90 bg-white p-5">
+                <h2 className="text-xl font-semibold text-gray-900">Danh sách gói</h2>
+                <p className="text-sm text-gray-500">Chọn gói phù hợp với nhu cầu hiện tại.</p>
+                <div className="mt-4 grid gap-4 lg:grid-cols-3">
                     {!loading && planCards.length === 0 && (
-                        <div className="rounded-2xl border border-gray-300/90 bg-white px-4 py-8 text-sm text-gray-500 lg:col-span-3">
+                        <div className="rounded-lg border border-gray-300/90 bg-white px-4 py-8 text-sm text-gray-500 lg:col-span-3">
                             Hiện chưa có dữ liệu gói dịch vụ từ server.
                         </div>
                     )}

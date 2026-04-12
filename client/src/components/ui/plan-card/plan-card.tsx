@@ -10,13 +10,13 @@ interface PlanCardProps {
 const PlanCard = ({ title, price, description, features, highlight = false, actionLabel }: PlanCardProps) => {
 	return (
 		<article
-			className={`rounded-3xl border p-6 shadow-[0_14px_40px_rgba(34,61,102,0.08)] ${
+			className={`rounded-xl border p-5 ${
 				highlight ? "border-[#cfe0fc] bg-[#f8fbff]" : "border-gray-300/90 bg-white"
 			}`}
 		>
-			<p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">{title}</p>
-			<p className="mt-3 text-4xl font-semibold text-gray-900">{price}</p>
-			<p className="mt-2 text-sm leading-6 text-gray-500">{description}</p>
+			<p className="text-sm font-semibold text-gray-500">{title}</p>
+			<p className="mt-2 text-3xl font-semibold text-gray-900">{price}</p>
+			<p className="mt-1 text-sm text-gray-500">{description}</p>
 
 			<ul className="mt-5 space-y-2 text-sm text-gray-900">
 				{features.map((feature) => (
@@ -28,7 +28,7 @@ const PlanCard = ({ title, price, description, features, highlight = false, acti
 			</ul>
 
 			<button
-				className={`mt-6 w-full rounded-full border px-4 py-2 text-sm font-semibold transition ${
+				className={`mt-5 w-full rounded-md border px-4 py-2 text-sm font-semibold ${
 					highlight
 						? "border-[#1a73e8] bg-[#1a73e8] text-white hover:bg-blue-700"
 						: "border-gray-300/90 bg-white text-gray-900 hover:bg-gray-50"

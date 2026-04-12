@@ -26,6 +26,16 @@ export const FileModule = {
         return response.data;
     },
 
+    async ShareFile(fileUUID: string) {
+        const response = await api.post<RestResponse<FileResponse>>(`/api/guard/files/${fileUUID}/share`);
+        return response.data;
+    },
+
+    async UnshareFile(fileUUID: string) {
+        const response = await api.post<RestResponse<FileResponse>>(`/api/guard/files/${fileUUID}/unshare`);
+        return response.data;
+    },
+
     async DownloadFile(fileUUID: string) {
         const response = await api.get(`/api/guard/file/${fileUUID}/download`, {
             responseType: "blob",
