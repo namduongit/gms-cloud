@@ -109,6 +109,47 @@ func GetFileByUUIDAndAccountID(uuid string, accountID uint) (*model.File, error)
 	return file, nil
 }
 
+func ShareFileByUUIDAndAccountID(uuid string, accountID uint) (*model.File, error) {
+	file, err := repository.GetFileByUUIDAndAccountID(uuid, accountID)
+	if err != nil {
+		return nil, errors.New("File not found")
+	}
+
+	err = repository.UpdateFileShareStatusByUUIDAndAccountID(uuid, accountID, true)
+	if err != nil {
+		return nil, err
+	}
+
+	file.IsShared = true
+
+	return file, nil
+}
+
+func UnShareFileByUUIDAndAccountID(uuid string, accountID uint) (*model.File, error) {
+	file, err := repository.GetFileByUUIDAndAccountID(uuid, accountID)
+	if err != nil {
+		return nil, errors.New("File not found")
+	}
+
+	err = repository.UpdateFileShareStatusByUUIDAndAccountID(uuid, accountID, false)
+	if err != nil {
+		return nil, err
+	}
+
+	file.IsShared = false
+
+	return file, nil
+}
+
+func GetSharedFileByUUID(uuid string) (*model.File, error) {
+	file, err := repository.GetSharedFileByUUID(uuid)
+	if err != nil {
+		return nil, err
+	}
+
+	return file, nil
+}
+
 func GetImageURL(ctx context.Context, file *model.File) (*minio.Object, error) {
 	object, err := config.CLMiniO.GetObject(
 		ctx,

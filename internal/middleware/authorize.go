@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 	"url-shortener/internal/config"
+	"url-shortener/internal/service"
 	"url-shortener/internal/utils"
 
 	"github.com/gin-gonic/gin"
@@ -14,6 +15,17 @@ var jwtKey = []byte(config.GetConfig().JWTSecret)
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		if c.Request.Method == http.MethodGet && c.FullPath() == "/api/guard/file/:uuid/download" {
+			fileUUID := c.Param("uuid")
+			if fileUUID != "" {
+				sharedFile, err := service.GetSharedFileByUUID(fileUUID)
+				if err == nil && sharedFile != nil && sharedFile.IsShared {
+					c.Next()
+					return
+				}
+			}
+		}
+
 		tokenStr := ""
 		if cookieToken, err := c.Cookie("accessToken"); err == nil && cookieToken != "" {
 			tokenStr = cookieToken
@@ -21,7 +33,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
-					[]string{"Authentication required"},
+					config.RequireAuthentication,
 					config.RestFulInvalid,
 					config.RestFulCodeInvalid,
 				))
@@ -31,7 +43,7 @@ func AuthMiddleware() gin.HandlerFunc {
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
 				c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
-					[]string{"Invalid authorization header"},
+					config.InvalidToken,
 					config.RestFulInvalid,
 					config.RestFulCodeInvalid,
 				))
@@ -62,13 +74,40 @@ func AuthMiddleware() gin.HandlerFunc {
 		}
 
 		accountUUID := claims["uuid"].(string)
-		accountID := uint(claims["id"].(float64))
+		version := uint(claims["version_id"].(float64))
 
-		c.Set("accountUUID", accountUUID)
-		c.Set("accountID", accountID)
+		account, err := service.GetAccountByUUID(accountUUID)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
+				err.Error(),
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
 
-		fmt.Println("Request provide token with uuid has value is: ", claims["uuid"])
-		fmt.Println("Request provide token with id has value is: ", claims["id"])
+		if account == nil {
+			c.JSON(http.StatusUnauthorized, config.GinErrorResponse(
+				config.AccountNotFound,
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
+
+		if account.Version != version {
+			c.JSON(http.StatusUnauthorized, config.GinErrorResponse(
+				config.TokenIsOutdated,
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
+
+		c.Set("accountUUID", account.UUID)
+		c.Set("accountID", account.ID)
+		c.Set("account", account)
+
 		fmt.Println(claims)
 
 		c.Next()

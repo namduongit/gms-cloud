@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"url-shortener/internal/config"
+	"url-shortener/internal/model"
 	"url-shortener/internal/model/response"
 	"url-shortener/internal/service"
 
@@ -10,16 +11,7 @@ import (
 )
 
 func GetUrls(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	urls, err := service.GetURLsFromAccountID(account.ID)
 	if err != nil {
@@ -46,7 +38,7 @@ func GetUrls(c *gin.Context) {
 	}
 
 	response := response.URLListResponse{
-		OwnerUUID: accountUUID,
+		OwnerUUID: account.UUID.String(),
 		URLs:      urlResponse,
 	}
 
@@ -65,16 +57,7 @@ type CreateURLRequest struct {
 }
 
 func CreateShortURL(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	var req CreateURLRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -140,18 +123,19 @@ func DirectURL(c *gin.Context) {
 }
 
 func DeleteURL(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	_, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
+	account := c.MustGet("account").(*model.Account)
+
+	urlUUID := c.Param("uuid")
+	url, err := service.GetURLByUUID(urlUUID)
+	if err != nil || url == nil || url.AccountID != account.ID {
+		c.JSON(http.StatusNotFound, config.GinErrorResponse(
+			config.URLNotExists,
+			config.RestFulNotFound,
+			config.RestFulCodeNotFound,
 		))
 		return
 	}
 
-	urlUUID := c.Param("uuid")
 	err = service.DeleteURLByUUID(urlUUID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, config.GinErrorResponse(

@@ -31,15 +31,15 @@ func SetupRouter() *gin.Engine {
 
 	r.GET("/api/public/plans", handler.GetPlans)
 	r.GET("/api/public/images/:code", handler.GetImageFile)
-	// Endpoint configuration from environment
+
+	r.GET("/file/:uuid/download", handler.DownloadSharedFile)
+
+	r.GET("/:code", handler.DirectURL)
 
 	// Protected routes
 	protected := r.Group("/api/guard")
 	protected.Use(middleware.AuthMiddleware())
 	{
-		protected.GET("/file/:uuid/download", handler.DownloadFile)
-		protected.GET("/url/:code/direct", handler.DirectURL)
-
 		protected.GET("/config", handler.AuthConfig)
 
 		protected.GET("/profile", handler.GetProfile)
@@ -60,6 +60,10 @@ func SetupRouter() *gin.Engine {
 			"/folders/:uuid",
 			handler.DeleteFolder,
 		)
+		protected.PUT(
+			"/folders/:uuid",
+			handler.UpdateFolder,
+		)
 
 		/* File routes */
 		protected.GET(
@@ -73,6 +77,18 @@ func SetupRouter() *gin.Engine {
 		protected.DELETE(
 			"/files/:uuid",
 			handler.DeleteFile,
+		)
+		protected.POST(
+			"/files/:uuid/share",
+			handler.ShareFile,
+		)
+		protected.POST(
+			"/files/:uuid/unshare",
+			handler.UnShareFile,
+		)
+		protected.GET(
+			"/file/:uuid/download",
+			handler.DownloadFile,
 		)
 
 		/* URL routes */

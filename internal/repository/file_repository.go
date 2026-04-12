@@ -44,6 +44,25 @@ func GetFileByUUIDAndAccountID(uuid string, accountID uint) (*model.File, error)
 	return &file, nil
 }
 
+func GetSharedFileByUUID(uuid string) (*model.File, error) {
+	var file model.File
+	err := config.DBClient.
+		Where("uuid = ? AND is_shared = ?", uuid, true).
+		First(&file).Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &file, nil
+}
+
+func UpdateFileShareStatusByUUIDAndAccountID(uuid string, accountID uint, isShared bool) error {
+	return config.DBClient.
+		Model(&model.File{}).
+		Where("uuid = ? AND account_id = ?", uuid, accountID).
+		Update("is_shared", isShared).Error
+}
+
 func DeleteFileByUUIDFromAccountID(uuid string, accountID uint) error {
 	err := config.DBClient.Where("uuid = ? AND account_id = ?", uuid, accountID).Delete(&model.File{}).Error
 

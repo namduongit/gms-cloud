@@ -12,12 +12,12 @@ func GenerateToken(sub any, role string, uuid string, id uint, secretKey string)
 	exp := time.Now().Add(7 * 24 * time.Hour).Unix()
 
 	claims := jwt.MapClaims{
-		"id":   id,
-		"uuid": uuid,
-		"sub":  sub,
-		"role": role,
-		"exp":  exp,
-		"iat":  iat,
+		"version_id": id,
+		"uuid":       uuid,
+		"sub":        sub,
+		"role":       role,
+		"exp":        exp,
+		"iat":        iat,
 	}
 
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims)

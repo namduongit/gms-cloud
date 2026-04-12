@@ -4,9 +4,9 @@ import (
 	"net/http"
 
 	"url-shortener/internal/config"
+	"url-shortener/internal/model"
 	"url-shortener/internal/model/response"
 	"url-shortener/internal/repository"
-	"url-shortener/internal/service"
 
 	"github.com/gin-gonic/gin"
 )
@@ -21,16 +21,7 @@ type UpdateProfileRequest struct {
 }
 
 func GetProfile(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	profile, err := repository.GetProfileFromAccountID(account.ID)
 	if err != nil {
@@ -61,16 +52,7 @@ func GetProfile(c *gin.Context) {
 }
 
 func UpdateProfile(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	var req UpdateProfileRequest
 	if err := c.ShouldBindJSON(&req); err != nil {

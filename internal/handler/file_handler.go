@@ -14,17 +14,8 @@ import (
 )
 
 func GetFiles(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
 
+	account := c.MustGet("account").(*model.Account)
 	files, err := service.GetFilesFromAccountID(account.ID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
@@ -56,9 +47,11 @@ func GetFiles(c *gin.Context) {
 			FileType:    string(file.FileType),
 			ContentType: file.ContentType,
 			Size:        file.Size,
-			FolderUUID:  folderUUID,
-			FolderName:  folderName,
-			UploadedAt:  file.UploadedAt,
+			IsShared:    file.IsShared,
+
+			FolderUUID: folderUUID,
+			FolderName: folderName,
+			UploadedAt: file.UploadedAt,
 		}
 	}
 
@@ -76,16 +69,7 @@ func GetFiles(c *gin.Context) {
 }
 
 func UploadFile(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	fileHeader, err := c.FormFile("file")
 	folderUUIDInput := c.PostForm("folder")
@@ -141,6 +125,7 @@ func UploadFile(c *gin.Context) {
 		FileType:    string(file.FileType),
 		ContentType: file.ContentType,
 		Size:        file.Size,
+		IsShared:    file.IsShared,
 		FolderUUID:  folderUUID,
 		FolderName:  folderName,
 		UploadedAt:  file.CreatedAt,
@@ -216,20 +201,11 @@ type MoveFileRequest struct {
 }
 
 func DeleteFile(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	fileUUID := c.Param("uuid")
 
-	err = service.DeleteFileByUUID(c.Request.Context(), account.ID, fileUUID)
+	err := service.DeleteFileByUUID(c.Request.Context(), account.ID, fileUUID)
 	if err != nil {
 		c.JSON(http.StatusNotFound, config.GinErrorResponse(
 			err.Error(),
@@ -248,24 +224,139 @@ func DeleteFile(c *gin.Context) {
 }
 
 func DownloadFile(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
+	accountData, hasAccount := c.Get("account")
+	if !hasAccount {
+		DownloadSharedFile(c)
+		return
+	}
+
+	account, ok := accountData.(*model.Account)
+	if !ok || account == nil {
+		DownloadSharedFile(c)
 		return
 	}
 
 	fileUUID := c.Param("uuid")
 	file, err := service.GetFileByUUIDAndAccountID(fileUUID, account.ID)
 	if err != nil || file == nil {
+		DownloadSharedFile(c)
+		return
+	}
+
+	object, err := service.GetImageURL(c.Request.Context(), file)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
+			err.Error(),
+			config.RestFulInternalError,
+			config.RestFulCodeInternalError,
+		))
+		return
+	}
+
+	stat, err := object.Stat()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
+			err.Error(),
+			config.RestFulInternalError,
+			config.RestFulCodeInternalError,
+		))
+		return
+	}
+
+	contentType := stat.ContentType
+	if contentType == "" {
+		contentType = file.ContentType
+	}
+
+	c.Header("Content-Type", contentType)
+	c.Header("Content-Length", strconv.FormatInt(stat.Size, 10))
+	c.Header("Content-Disposition", fmt.Sprintf("attachment; filename=%q", file.FileName))
+
+	_, err = io.Copy(c.Writer, object)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
+			err.Error(),
+			config.RestFulInternalError,
+			config.RestFulCodeInternalError,
+		))
+		return
+	}
+}
+
+func ShareFile(c *gin.Context) {
+	account := c.MustGet("account").(*model.Account)
+	fileUUID := c.Param("uuid")
+
+	file, err := service.ShareFileByUUIDAndAccountID(fileUUID, account.ID)
+	if err != nil || file == nil {
 		c.JSON(http.StatusNotFound, config.GinErrorResponse(
 			config.FileNotExists,
 			config.RestFulNotFound,
 			config.RestFulCodeNotFound,
+		))
+		return
+	}
+
+	response := response.FileShareResponse{
+		UUID:        file.UUID.String(),
+		IsShared:    file.IsShared,
+		DownloadURL: cfg.ServerHost + "/file/" + file.UUID.String() + "/download",
+	}
+
+	c.JSON(http.StatusOK, config.GinResponse(
+		response,
+		config.RestFulSuccess,
+		nil,
+		config.RestFulCodeSuccess,
+	))
+}
+
+func UnShareFile(c *gin.Context) {
+	account := c.MustGet("account").(*model.Account)
+	fileUUID := c.Param("uuid")
+
+	file, err := service.UnShareFileByUUIDAndAccountID(fileUUID, account.ID)
+	if err != nil || file == nil {
+		c.JSON(http.StatusNotFound, config.GinErrorResponse(
+			config.FileNotExists,
+			config.RestFulNotFound,
+			config.RestFulCodeNotFound,
+		))
+		return
+	}
+
+	response := response.FileShareResponse{
+		UUID:        file.UUID.String(),
+		IsShared:    file.IsShared,
+		DownloadURL: cfg.ServerHost + "/file/" + file.UUID.String() + "/download",
+	}
+
+	c.JSON(http.StatusOK, config.GinResponse(
+		response,
+		config.RestFulSuccess,
+		nil,
+		config.RestFulCodeSuccess,
+	))
+}
+
+func DownloadSharedFile(c *gin.Context) {
+	fileUUID := c.Param("uuid")
+
+	file, err := service.GetSharedFileByUUID(fileUUID)
+	if err != nil || file == nil {
+		c.JSON(http.StatusNotFound, config.GinErrorResponse(
+			config.FileNotExists,
+			config.RestFulNotFound,
+			config.RestFulCodeNotFound,
+		))
+		return
+	}
+
+	if !file.IsShared {
+		c.JSON(http.StatusForbidden, config.GinErrorResponse(
+			config.FileNotShared,
+			config.RestFulForbidden,
+			config.RestFulCodeForbidden,
 		))
 		return
 	}

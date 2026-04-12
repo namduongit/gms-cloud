@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"url-shortener/internal/config"
+	"url-shortener/internal/model"
 	"url-shortener/internal/model/response"
 	"url-shortener/internal/service"
 
@@ -44,16 +45,7 @@ func GetPlans(c *gin.Context) {
 }
 
 func ViewPlan(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	usedStorage, err := service.GetUsedStorageByAccountID(account.ID)
 	if err != nil {

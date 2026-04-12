@@ -45,6 +45,13 @@ func GetFolderByNameFromAccountID(name string, accountID uint) (*model.Folder, e
 	return &folder, nil
 }
 
+func UpdateFolderNameByUUIDAndAccountID(uuid string, accountID uint, name string) error {
+	return config.DBClient.
+		Model(&model.Folder{}).
+		Where("uuid = ? AND account_id = ?", uuid, accountID).
+		Update("name", name).Error
+}
+
 func UpdateFieldFolder(folderUUID string) {
 	config.DBClient.Exec(`
 		UPDATE folders f

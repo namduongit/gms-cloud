@@ -2,6 +2,7 @@ package handler
 
 import (
 	"net/http"
+	"strings"
 	"url-shortener/internal/config"
 	"url-shortener/internal/model"
 	"url-shortener/internal/model/response"
@@ -11,17 +12,7 @@ import (
 )
 
 func GetFolders(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	folders, err := service.GetFoldersByUserID(account.ID)
 	if err != nil {
@@ -62,17 +53,7 @@ type CreateFolderRequest struct {
 }
 
 func CreateFolder(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	var req CreateFolderRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
@@ -122,16 +103,7 @@ func CreateFolder(c *gin.Context) {
 }
 
 func DeleteFolder(c *gin.Context) {
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			config.Unauthorize,
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	folderUUID := c.Param("uuid")
 	if folderUUID == "" {
@@ -177,6 +149,82 @@ func DeleteFolder(c *gin.Context) {
 
 	c.JSON(http.StatusOK, config.GinResponse(
 		nil,
+		config.RestFulSuccess,
+		nil,
+		config.RestFulCodeSuccess,
+	))
+}
+
+type UpdateFolderRequest struct {
+	Name string `json:"name" binding:"required"`
+}
+
+func UpdateFolder(c *gin.Context) {
+	account := c.MustGet("account").(*model.Account)
+	folderUUID := c.Param("uuid")
+
+	var req UpdateFolderRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			config.InvalidRequestBody,
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
+
+	req.Name = strings.TrimSpace(req.Name)
+	if req.Name == "" {
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			config.InvalidRequestBody,
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
+
+	folder, err := service.GetFolderByUUID(folderUUID)
+	if err != nil || folder == nil || folder.AccountID != account.ID {
+		c.JSON(http.StatusNotFound, config.GinErrorResponse(
+			config.FolderNotExists,
+			config.RestFulNotFound,
+			config.RestFulCodeNotFound,
+		))
+		return
+	}
+
+	existingFolder, _ := service.GetFolderByNameFromAccountID(req.Name, account.ID)
+	if existingFolder != nil && existingFolder.ID != folder.ID {
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			config.FolderNameExists,
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
+
+	err = service.RenameFolder(folderUUID, account.ID, req.Name)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
+			err.Error(),
+			config.RestFulInternalError,
+			config.RestFulCodeInternalError,
+		))
+		return
+	}
+
+	folder.Name = req.Name
+
+	response := response.FolderResponse{
+		UUID:       folder.UUID.String(),
+		Name:       folder.Name,
+		TotalFiles: folder.TotalFile,
+		TotalSize:  folder.TotalSize,
+		CreatedAt:  folder.CreatedAt,
+	}
+
+	c.JSON(http.StatusOK, config.GinResponse(
+		response,
 		config.RestFulSuccess,
 		nil,
 		config.RestFulCodeSuccess,

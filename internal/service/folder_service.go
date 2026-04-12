@@ -35,3 +35,7 @@ func CreateFolder(userID uint, name string) (*model.Folder, error) {
 
 	return &folder, nil
 }
+
+func RenameFolder(uuid string, accountID uint, name string) error {
+	return repository.UpdateFolderNameByUUIDAndAccountID(uuid, accountID, name)
+}

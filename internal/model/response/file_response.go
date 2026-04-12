@@ -8,6 +8,7 @@ type FileResponse struct {
 	FileType    string    `json:"file_type"`
 	ContentType string    `json:"content_type"`
 	Size        int64     `json:"size"`
+	IsShared    bool      `json:"is_shared"`
 	FolderUUID  *string   `json:"folder_uuid"`
 	FolderName  string    `json:"folder_name"`
 	UploadedAt  time.Time `json:"uploaded_at"`
@@ -16,4 +17,10 @@ type FileResponse struct {
 type FileListResponse struct {
 	OwnerUUID string         `json:"owner_uuid"`
 	Files     []FileResponse `json:"files"`
+}
+
+type FileShareResponse struct {
+	UUID        string `json:"uuid"`
+	IsShared    bool   `json:"is_shared"`
+	DownloadURL string `json:"download_url"`
 }

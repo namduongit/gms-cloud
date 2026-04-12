@@ -26,6 +26,7 @@ type File struct {
 	ContentType string
 	StorageKey  string
 	Size        int64
+	IsShared    bool `gorm:"default:false"`
 
 	AccountID uint `gorm:"index"`
 

@@ -20,6 +20,7 @@ type Account struct {
 	Email    string `gorm:"unique"`
 	Role     Role   `gorm:"default:'none'"`
 	Password string
+	Version  uint `gorm:"default:0; not null"`
 
 	// One-to-One relationship with Profile
 	Profile Profile

@@ -21,6 +21,7 @@ type Token struct {
 	UUID uuid.UUID `gorm:"type:uuid;uniqueIndex;not null;default:gen_random_uuid()"`
 
 	Name      string
+	Token     string `gorm:"unique;not null"`
 	TokenHash string `gorm:"unique;not null"`
 	Scope     string
 	ExpiresAt *time.Time

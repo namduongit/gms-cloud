@@ -3,6 +3,7 @@ package handler
 import (
 	"net/http"
 	"url-shortener/internal/config"
+	"url-shortener/internal/model"
 	"url-shortener/internal/model/response"
 	"url-shortener/internal/service"
 	"url-shortener/internal/utils"
@@ -13,8 +14,9 @@ import (
 var cfg = config.GetConfig()
 
 type RegisterRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email           string `json:"email"`
+	Password        string `json:"password"`
+	PasswordConfirm string `json:"password_confirm"`
 }
 
 func Register(c *gin.Context) {
@@ -22,6 +24,15 @@ func Register(c *gin.Context) {
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
 			config.InvalidRequestBody,
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
+
+	if req.Password != req.PasswordConfirm {
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			"Password and password confirmation do not match",
 			config.RestFulInvalid,
 			config.RestFulCodeInvalid,
 		))
@@ -92,7 +103,7 @@ func Login(c *gin.Context) {
 		},
 		string(account.Role),
 		account.UUID.String(),
-		account.ID,
+		account.Version,
 		string(cfg.JWTSecret),
 	)
 
@@ -130,16 +141,7 @@ func AuthConfig(c *gin.Context) {
 	tokenStr, _ := c.Cookie("accessToken")
 	authenticated := false
 
-	accountUUID := c.GetString("accountUUID")
-	account, err := service.GetAccountByUUID(accountUUID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			err.Error(),
-			config.RestFulUnauthorized,
-			config.RestFulCodeUnauthorized,
-		))
-		return
-	}
+	account := c.MustGet("account").(*model.Account)
 
 	isValid, iat, exp, err := utils.VerifyToken(tokenStr, string(cfg.JWTSecret))
 	if err != nil {
