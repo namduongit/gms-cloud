@@ -16,13 +16,13 @@ export const FolderModule = {
         return response.data;
     },
 
-    async RenameFolder(folderUUID: string, name: string) {
-        const response = await api.put<RestResponse<FolderResponse>>(`/api/guard/folders/${folderUUID}`, { name });
+    async RenameFolder(uuid: string, name: string) {
+        const response = await api.put<RestResponse<FolderResponse>>(`/api/guard/folders/${uuid}`, { name: name });
         return response.data;
     },
 
-    async DeleteFolder(folderUUID: string) {
-        const response = await api.delete<RestResponse<null>>(`/api/guard/folders/${folderUUID}`);
+    async DeleteFolder(uuid: string) {
+        const response = await api.delete<RestResponse<null>>(`/api/guard/folders/${uuid}`);
         return response.data;
     }
 }

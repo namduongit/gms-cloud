@@ -6,7 +6,13 @@ export type LoginForm = {
 export type RegisterForm = {
     email: string;
     password: string;
-    confirmPassword: string;
+    password_confirm: string;
+}
+
+export type ChangePasswordForm = {
+    current_password: string;
+    new_password: string;
+    password_confirm: string;
 }
 
 type PlanDetailResponse = {

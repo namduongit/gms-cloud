@@ -4,7 +4,11 @@ export const formatDate = (dateString: string) => {
     return date.toLocaleDateString();
 }
 
-export const formatDriveDate = (date: Date) => {
+export const formatDriveDate = (date: Date | string | number | null | undefined) => {
+    if (date === null || typeof date === "undefined") {
+        return "--";
+    }
+
     const format = new Date(date);
 
     const day = format.getDate().toString().padStart(2, "0");

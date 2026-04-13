@@ -20,7 +20,7 @@ const SideFile = ({ file, onClose, onFileDeleted, resolveFileFolderName }: SideF
     const [previewError, setPreviewError] = useState(false);
 
     const isImageFile = file.content_type?.startsWith("image/") || file.file_type?.toLowerCase() === "image";
-    const imagePreviewUrl = `${import.meta.env.VITE_SERVER_URL}/api/public/images/${file.uuid}`;
+    const imagePreviewUrl = `${import.meta.env.VITE_ENDPOINT_SHARE_IMAGE}/${file.uuid}`;
 
     useEffect(() => {
         setPreviewError(false);

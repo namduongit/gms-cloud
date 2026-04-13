@@ -1,6 +1,6 @@
 import { Axios } from "../../libs/api"
 import type { RestResponse } from "../../libs/response";
-import type { ConfigResponse, LoginForm, LoginResponse, LogoutResponse, RegisterForm, RegisterResponse } from "../types/auth.type"
+import type { ChangePasswordForm, ConfigResponse, LoginForm, LoginResponse, LogoutResponse, RegisterForm, RegisterResponse } from "../types/auth.type"
 
 const api = Axios();
 
@@ -22,6 +22,11 @@ export const AuthModule = {
 
     async Config() {
         const response = await api.get<RestResponse<ConfigResponse>>("/api/guard/config");
+        return response.data;
+    },
+
+    async ChangePassword(data: ChangePasswordForm) {
+        const response = await api.post<RestResponse<null>>("/api/guard/password", data);
         return response.data;
     }
 }

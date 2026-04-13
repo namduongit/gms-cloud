@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import type { CreateUrlForm, UrlListResponse, UrlResponse } from "../../services/types/url.type";
 import { useExecute } from "../../common/hooks/useExecute";
-import { UrlModule } from "../../services/modules/url.modules";
+import { UrlModule } from "../../services/modules/url.module";
 import { useNotificate } from "../../common/hooks/useNotificate";
 import CreateUrlModal from "../../components/ui/modal/create-url/create-url-modal";
 import UrlPageHero from "../../components/ui/url-page/url-page-hero";

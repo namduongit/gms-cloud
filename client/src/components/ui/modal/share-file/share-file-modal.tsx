@@ -24,7 +24,7 @@ const ShareFileModal = ({
         return null;
     }
 
-    const shareUrl = `${import.meta.env.VITE_SERVER_URL}/api/guard/file/${file.uuid}/download`;
+    const shareUrl = `${import.meta.env.VITE_ENDPOINT_SHARE_FILE}/${file.uuid}`;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2937]/45 px-4 py-6">

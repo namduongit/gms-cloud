@@ -17,7 +17,7 @@ const RegisterPage = () => {
 	const notificate = useNotificate();
 	const navigate = useNavigate();
 
-	const [form, setForm] = useState<RegisterForm>({ email: "", password: "", confirmPassword: "" });
+	const [form, setForm] = useState<RegisterForm>({ email: "", password: "", password_confirm: "" });
 
 	useEffect(() => {
 		const existingScript = document.querySelector("script[data-dotlottie-player='true']");
@@ -40,7 +40,7 @@ const RegisterPage = () => {
 	const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
 		event.preventDefault();
 
-		if (!form.email || !form.password || !form.confirmPassword) {
+		if (!form.email || !form.password || !form.password_confirm) {
 			return;
 		}
 
@@ -118,16 +118,16 @@ const RegisterPage = () => {
 						</div>
 
 						<div>
-							<label className="text-sm font-semibold text-gray-900" htmlFor="confirmPassword">
+							<label className="text-sm font-semibold text-gray-900" htmlFor="password_confirm">
 								Xác nhận mật khẩu
 							</label>
 							<input
-								id="confirmPassword"
-								name="confirmPassword"
+								id="password_confirm"
+								name="password_confirm"
 								type="password"
 								placeholder="Nhập lại mật khẩu"
 								className={inputClasses}
-								value={form.confirmPassword}
+								value={form.password_confirm}
 								onChange={handleChange}
 								required
 							/>

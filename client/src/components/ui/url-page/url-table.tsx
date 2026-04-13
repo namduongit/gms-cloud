@@ -50,8 +50,7 @@ const UrlTable = ({
                                 </span>
                                 <div className="min-w-0">
                                     <div className="flex flex-wrap items-center gap-2">
-                                        <p className="truncate text-sm font-semibold text-gray-900">/{item.code || "-"}</p>
-                                        <span className="rounded-full border border-gray-300/90 px-2 py-0.5 text-[11px] font-semibold text-gray-600">#{item.uuid.slice(0, 8)}</span>
+                                        <p className="truncate text-sm font-semibold text-gray-900">{item.code || "-"}</p>
                                     </div>
                                     <p className="mt-1 text-xs text-gray-500">Tạo ngày: {formatDate(String(item.created_at))}</p>
                                 </div>
@@ -63,8 +62,8 @@ const UrlTable = ({
 
                             <div className="min-w-0">
                                 <p className="truncate text-sm font-medium text-gray-900">
-                                    <a href={item.short_url} target="_blank" rel="noopener noreferrer" className="text-[#1a73e8] hover:underline">
-                                        {item.short_url}
+                                    <a href={`${import.meta.env.VITE_ENDPOINT_SHORT_URL}/${item.code}`} target="_blank" rel="noopener noreferrer" className="text-[#1a73e8] hover:underline">
+                                        {`${import.meta.env.VITE_ENDPOINT_SHORT_URL}/${item.code}`}
                                     </a>
                                 </p>
                                 {item.original_url && (
@@ -75,7 +74,7 @@ const UrlTable = ({
                             <div className="flex items-start justify-end gap-2">
                                 <button
                                     className="inline-flex items-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-1.5 text-xs font-semibold text-gray-900 hover:bg-gray-100"
-                                    onClick={() => window.open(item.short_url, "_blank", "noopener,noreferrer")}
+                                    onClick={() => window.open(`${import.meta.env.VITE_ENDPOINT_SHORT_URL}/${item.code}`, "_blank", "noopener,noreferrer")}
                                 >
                                     Mở
                                     <i className="fa-solid fa-arrow-up-right-from-square text-[10px]"></i>

@@ -37,6 +37,7 @@ export const FileModule = {
     },
 
     async DownloadFile(fileUUID: string) {
+        // VITE_ENDPOINT_DOWNLOAD_FILE=http://localhost:8080/api/guard/file/{uuid}/download
         const response = await api.get(`/api/guard/file/${fileUUID}/download`, {
             responseType: "blob",
         });

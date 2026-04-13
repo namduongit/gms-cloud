@@ -265,7 +265,7 @@ const FilePage = () => {
             return;
         }
 
-        const shareUrl = `${import.meta.env.VITE_SERVER_URL}/api/guard/file/${selectedShareFile.uuid}/download`;
+        const shareUrl = `${import.meta.env.VITE_ENDPOINT_SHARE_FILE}/${selectedShareFile.uuid}`;
 
         try {
             await navigator.clipboard.writeText(shareUrl);
