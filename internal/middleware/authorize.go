@@ -21,7 +21,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		} else {
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+				c.JSON(http.StatusUnauthorized, config.GinErrorResponse(
 					config.RequireAuthentication,
 					config.RestFulInvalid,
 					config.RestFulCodeInvalid,
@@ -31,7 +31,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 			parts := strings.SplitN(authHeader, " ", 2)
 			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
-				c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+				c.JSON(http.StatusUnauthorized, config.GinErrorResponse(
 					config.InvalidToken,
 					config.RestFulInvalid,
 					config.RestFulCodeInvalid,

@@ -26,8 +26,21 @@ func APIMiddleware() gin.HandlerFunc {
 			return
 		}
 
+		token, err := repository.GetTokenByPublicToken(publicKey)
+		if err != nil {
+			c.JSON(
+				http.StatusUnauthorized,
+				config.GinErrorResponse(
+					config.InvalidToken,
+					config.RestFulUnauthorized,
+					config.RestFulCodeUnauthorized,
+				),
+			)
+			return
+		}
+
 		// Valid token
-		isValid := utils.VerifyAPIToken(privateKey, publicKey)
+		isValid := utils.VerifyAPIToken(privateKey, token.TokenHash)
 
 		if !isValid {
 			c.JSON(
@@ -41,13 +54,12 @@ func APIMiddleware() gin.HandlerFunc {
 			return
 		}
 
-		// Get account from public key and set to context
-		account, err := repository.GetFromPublicKey(publicKey)
+		account, err := repository.GetAccountByID(token.AccountID)
 		if err != nil {
 			c.JSON(
-				http.StatusUnauthorized,
+				http.StatusInternalServerError,
 				config.GinErrorResponse(
-					config.AccountNotFound,
+					err.Error(),
 					config.RestFulUnauthorized,
 					config.RestFulCodeUnauthorized,
 				),

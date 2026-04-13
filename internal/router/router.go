@@ -14,7 +14,8 @@ func SetupRouter() *gin.Engine {
 	cfg := config.GetConfig()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{cfg.ClientHost},
+		AllowOrigins: []string{cfg.ClientHost},
+		// AllowOrigins:     []string{"https://gms-cloud-client.namduong.dev"},
 		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
 		AllowHeaders:     []string{"Authorization", "Content-Type"},
 		AllowCredentials: true,

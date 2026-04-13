@@ -24,3 +24,16 @@ func DeleteTokenByUUID(uuid string) error {
 		Where("uuid = ?", uuid).
 		Delete(&model.Token{}).Error
 }
+
+func GetTokenByPublicToken(publicToken string) (*model.Token, error) {
+	var token model.Token
+	err := config.DBClient.
+		Where("token = ?", publicToken).
+		First(&token).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &token, nil
+}

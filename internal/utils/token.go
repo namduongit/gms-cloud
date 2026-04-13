@@ -50,10 +50,10 @@ func GenerateAPITokenPair() (*APITokenPair, error) {
 	}, nil
 }
 
-func VerifyAPIToken(privateToken string, privateTokenHash string) bool {
+func VerifyAPIToken(privateToken string, hashKeyLoadFromAccount string) bool {
 	cfg := config.GetConfig()
 	hashSource := privateToken + cfg.APISecret + cfg.APISalt
 
-	err := bcrypt.CompareHashAndPassword([]byte(privateTokenHash), []byte(hashSource))
+	err := bcrypt.CompareHashAndPassword([]byte(hashKeyLoadFromAccount), []byte(hashSource))
 	return err == nil
 }
