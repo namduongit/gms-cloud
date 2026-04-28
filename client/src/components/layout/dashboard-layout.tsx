@@ -4,17 +4,21 @@ import Header from "../ui/header/header";
 
 const DashboardLayout = () => {
     return (
-        <div className="min-h-screen bg-gray-50">
-            <div className="mx-auto w-[95%] px-3 py-4 md:px-6 md:py-5">
+        <div className="min-h-screen bg-white">
+            <div className="sticky top-0 z-20 border-b border-gray-200 bg-white px-6">
                 <Header />
             </div>
-            <div className="mx-auto grid w-[95%] gap-4 px-3 pb-6 md:px-6 lg:grid-cols-[280px_minmax(0,1fr)]">
-                <div>
-                    <Sidebar />
-                </div>
-                <div className="rounded-2xl border border-gray-300/90 bg-white p-4 md:p-6">
+
+            <div className="flex gap-0">
+                <aside className="hidden w-56 shrink-0 border-r border-gray-100 lg:block">
+                    <div className="sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto px-4 py-4">
+                        <Sidebar />
+                    </div>
+                </aside>
+
+                <main className="min-w-0 flex-1 px-8 py-6 pb-16">
                     <Outlet />
-                </div>
+                </main>
             </div>
         </div>
     );

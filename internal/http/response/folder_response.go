@@ -14,3 +14,10 @@ type FolderListResponse struct {
 	OwnerUUID string           `json:"owner_uuid"`
 	Folders   []FolderResponse `json:"folders"`
 }
+
+type FolderDetailResponse struct {
+	OwnerUUID string           `json:"owner_uuid"`
+	Folder    FolderResponse   `json:"folder"`
+	Folders   []FolderResponse `json:"folders"`
+	Files     []FileResponse   `json:"files"`
+}

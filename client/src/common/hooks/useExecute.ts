@@ -47,6 +47,7 @@ export const useExecute = <T>() => {
             console.log("======= Result debug: ", result);
 
             setData(result.data as unknown as T);
+            const data = result.data
             options?.onSuccess?.(result.data);
             return result.data;
 

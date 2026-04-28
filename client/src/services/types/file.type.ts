@@ -1,14 +1,22 @@
+export type UploadConflictStrategy = "keep_both" | "overwrite";
+
+// Sign
+export type FileMetadata = {
+    client_file_id: string;
+    name: string;
+    size: number;
+    type: string;
+    conflict_strategy?: UploadConflictStrategy;
+}
+
 export type PresignUploadForm = {
-    files: {
-        client_file_id: string;
-        name: string;
-        size: number;
-        type: string;
-    }[];
+    files: FileMetadata[];
     destination_uuid?: string;
 }
 
+// Presign to get URL
 export type PresignUploadResponse = {
+    file_name: string;
     client_file_id: string;
     session_uuid: string;
     mode: string; //  single or multipart
@@ -18,15 +26,22 @@ export type PresignUploadResponse = {
     part_size: number;
 }
 
-export type SignUploadResponse = { 
-    upload_url: string; 
+// Upload - multipart
+export type SignUploadResponse = {
+    upload_urls: string[];
+}
+
+// Complete
+export type PartComplete = {
+    part_number: number;
+    etag: string;
+    size_bytes: number;
 }
 
 export type FileResponse = {
     uuid: string;
-    
+
     file_name: string;
-    file_type: string;
     content_type: string;
     size: number;
     is_shared: boolean;

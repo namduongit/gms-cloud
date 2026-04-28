@@ -15,10 +15,15 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, folderID *string) ([]response.PresignUploadResponse, error) {
+func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, folderUUID string) (*[]response.PresignUploadResponse, error) {
+	folder, err := GetFolderByUUID(folderUUID)
+	log.Println(folder != nil)
+	if folderUUID != "" && err != nil {
+		return nil, errors.New("Destination not found")
+	}
 	plans := make([]response.PresignUploadResponse, 0, len(files))
 
-	err := config.PostgresClient.Transaction(func(tx *gorm.DB) error {
+	err = config.PostgresClient.Transaction(func(tx *gorm.DB) error {
 		var usage model.AccountUsage
 		if err := tx.Clauses(clause.Locking{Strength: "UPDATE"}).
 			Where("account_id = ?", accountID).
@@ -27,12 +32,12 @@ func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, fol
 		}
 
 		available := safeSub(usage.QuotaBytes, usage.UsedStorage+usage.ReservedBytes)
-		log.Printf("Usage store: %d", available)
 
 		for _, file := range files {
 			p := response.PresignUploadResponse{
 				ClientFileID: file.ClientFileID,
 				Accepted:     false,
+				FileName:     file.Name,
 			}
 
 			// v := request.MetadataFile{
@@ -86,16 +91,22 @@ func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, fol
 			}
 
 			session := model.Session{
-				AccountID:      accountID,
-				FileName:       file.Name,
-				ContentType:    file.ContentType,
-				TotalSize:      file.Size,
-				UploadType:     model.UploadType(mode), // single or multipart
-				ObjectKeyTmp:   utils.BuildTmpKey(accountID, file.Name, folderID),
-				ObjectKeyFinal: utils.BuildFinalKey(accountID, file.Name, folderID),
-				Status:         model.SessionInProgress,
-				ReservedBytes:  file.Size,
-				ExpiresAt:      time.Now().Add(30 * time.Minute),
+				AccountID:   accountID,
+				FileName:    file.Name,
+				ContentType: file.ContentType,
+				TotalSize:   file.Size,
+				UploadType:  model.UploadType(mode), // single or multipart
+
+				ObjectKeyTmp:   utils.BuildTmpKey(accountID, file.Name, folder),
+				ObjectKeyFinal: utils.BuildFinalKey(accountID, file.Name, folder),
+
+				Status:        model.SessionInProgress,
+				ReservedBytes: file.Size,
+				ExpiresAt:     time.Now().Add(30 * time.Minute),
+			}
+
+			if folder != nil {
+				session.FolderID = &folder.ID
 			}
 
 			if mode == "multipart" {
@@ -131,7 +142,7 @@ func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, fol
 		return tx.Save(&usage).Error
 	})
 
-	return plans, err
+	return &plans, err
 }
 
 func safeSub(a, b uint64) uint64 {
@@ -141,87 +152,218 @@ func safeSub(a, b uint64) uint64 {
 	return a - b
 }
 
-func SignURLUpload(c *gin.Context, uuid string, partNumber *int32) (string, error) {
+func SignURLUpload(c *gin.Context, uuid string, request request.SignUploadRequest) ([]string, error) {
 	var session model.Session
 	if err := config.PostgresClient.Where("uuid = ?", uuid).First(&session).Error; err != nil {
-		return "", err
+		return []string{}, err
 	}
 
 	if time.Now().After(session.ExpiresAt) {
-		return "", errors.New("Session has expired")
+		return []string{}, errors.New("Session has expired")
 	}
 
+	// Single upload
 	if session.UploadType == model.SingleUpload {
-		out, err := config.PresignSingleUpload(c.Request.Context(), session.ObjectKeyTmp)
+		out, err := config.PresignSingleUpload(c.Request.Context(), session.ObjectKeyFinal)
 		if err != nil {
-			return "", err
+			return nil, err
 		}
-		return out, nil
+
+		return []string{
+			out,
+		}, nil
 	}
 
+	// Multipart upload
 	if session.UploadType == model.MultipartUpload {
 		if session.S3UploadID == nil {
-			return "", errors.New("Multipart upload not initialized")
+			return []string{}, errors.New("Multipart upload not initialized")
 		}
-		if partNumber == nil || *partNumber <= 0 {
-			return "", errors.New("Invalid part number")
+		log.Println(request.IsMulti != nil)
+		log.Println(len(request.Parts))
+		if request.IsMulti == nil || len(request.Parts) <= 0 {
+			return []string{}, errors.New("Invalid part number")
 		}
-		out, err := config.PresignMultipartUpload(c.Request.Context(), session.ObjectKeyTmp, *session.S3UploadID, *partNumber)
-		if err != nil {
-			return "", err
+
+		var outs []string = make([]string, 0, len(request.Parts))
+		for _, part := range request.Parts {
+			out, _ := config.PresignMultipartUpload(
+				c.Request.Context(),
+				session.ObjectKeyTmp,
+				*session.S3UploadID,
+				part,
+			)
+			outs = append(outs, out)
 		}
-		return out, nil
+		return outs, nil
 	}
 
-	return "", errors.New("Invalid upload type")
+	return []string{}, errors.New("Invalid upload type")
 }
 
-func UploadPart(uuid string, partNumber int32, etag string, sizeBytes uint64) error {
+func CompleteSingleUpload(c *gin.Context, uuid string) (*model.File, error) {
 	var session model.Session
 	if err := config.PostgresClient.Where("uuid = ?", uuid).First(&session).Error; err != nil {
-		return err
+		return nil, err
 	}
 
-	part := model.Part{
-		PartNumber: partNumber,
-		SessionID:  session.ID,
-		ETag:       etag,
-		SizeBytes:  sizeBytes,
+	if session.UploadType != model.SingleUpload {
+		return nil, errors.New("Incorrect upload type")
 	}
 
-	return config.PostgresClient.Save(&part).Error
+	file := model.File{
+		FileName:    session.FileName,
+		ContentType: session.ContentType,
+		StorageKey:  session.ObjectKeyFinal,
+		Size:        session.TotalSize,
+		AccountID:   session.AccountID,
+		FolderID:    session.FolderID,
+	}
+
+	if err := config.PostgresClient.Create(&file).Error; err != nil {
+		return nil, err
+	}
+
+	// Preload Folder on the newly created file (not on Session)
+	if file.FolderID != nil {
+		config.PostgresClient.Preload("Folder").First(&file, file.ID)
+	}
+
+	session.Status = model.SessionCompleted
+	session.ReservedBytes = 0
+
+	// Update folder metadata
+	if session.FolderID != nil {
+		go updateFolderMetadata(session.FolderID)
+	}
+
+	// Update account usage: transfer from ReservedBytes to UsedStorage
+	if err := config.PostgresClient.Model(&model.AccountUsage{}).
+		Where("account_id = ?", session.AccountID).
+		Updates(map[string]interface{}{
+			"reserved_bytes": gorm.Expr("GREATEST(reserved_bytes - ?, 0)", session.TotalSize),
+			"used_storage":   gorm.Expr("used_storage + ?", session.TotalSize),
+		}).Error; err != nil {
+		return nil, err
+	}
+
+	if err := config.PostgresClient.Save(&session).Error; err != nil {
+		return nil, err
+	}
+
+	return &file, nil
 }
 
-func CompleteUpload(c *gin.Context, uuid string) error {
+func CompleteMultipartUpload(c *gin.Context, uuid string, request request.CompleteMultipartUploadRequest) (*model.File, error) {
 	var session model.Session
 	if err := config.PostgresClient.Where("uuid = ?", uuid).First(&session).Error; err != nil {
-		return err
+		return nil, err
 	}
 
-	if session.S3UploadID == nil {
-		return errors.New("Multipart upload not initialized")
+	if session.UploadType != model.MultipartUpload {
+		return nil, errors.New("Incorrect upload type")
 	}
 
-	var parts []model.Part
-	if err := config.PostgresClient.Where("session_id = ?", session.ID).Find(&parts).Error; err != nil {
-		return err
+	if session.UploadType == model.MultipartUpload && session.S3UploadID == nil {
+		return nil, errors.New("Multipart upload not initialized")
 	}
 
 	var completedParts []config.CompletePart
-	for _, part := range parts {
+	for _, part := range request.PartCompletes {
 		completedParts = append(completedParts, config.CompletePart{
 			ETag:       part.ETag,
 			PartNumber: int32(part.PartNumber),
 		})
 	}
 
-	err := config.CompleteMultipart(c.Request.Context(), session.ObjectKeyFinal, *session.S3UploadID, completedParts)
+	// Complete multipart upload in tmp bucket, then move to final bucket
+	err := config.CompleteMultipart(c.Request.Context(), session.ObjectKeyTmp, session.ObjectKeyTmp, *session.S3UploadID, completedParts)
 	if err != nil {
-		return err
+		return nil, err
+	}
+
+	// Create a row in file schema
+	file := model.File{
+		FileName:    session.FileName,
+		ContentType: session.ContentType,
+		StorageKey:  session.ObjectKeyFinal,
+		Size:        session.TotalSize,
+		AccountID:   session.AccountID,
+		FolderID:    session.FolderID,
+	}
+
+	if err := config.PostgresClient.Create(&file).Error; err != nil {
+		return nil, err
+	}
+
+	// Preload Folder on the newly created file (not on Session)
+	if file.FolderID != nil {
+		config.PostgresClient.Preload("Folder").First(&file, file.ID)
 	}
 
 	session.Status = model.SessionCompleted
 	session.ReservedBytes = 0
 
-	return config.PostgresClient.Save(&session).Error
+	// Save Parts async
+	go savePart(session.ID, request.PartCompletes)
+
+	// Update folder metadata async
+	if session.FolderID != nil {
+		go updateFolderMetadata(session.FolderID)
+	}
+
+	// Update account usage: transfer from ReservedBytes to UsedStorage
+	if err := config.PostgresClient.Model(&model.AccountUsage{}).
+		Where("account_id = ?", session.AccountID).
+		Updates(map[string]interface{}{
+			"reserved_bytes": gorm.Expr("GREATEST(reserved_bytes - ?, 0)", session.TotalSize),
+			"used_storage":   gorm.Expr("used_storage + ?", session.TotalSize),
+		}).Error; err != nil {
+		return nil, err
+	}
+
+	if err := config.PostgresClient.Save(&session).Error; err != nil {
+		return nil, err
+	}
+
+	return &file, nil
+}
+
+func savePart(sessionID uint, parts []request.PartComplete) {
+	for _, part := range parts {
+		config.PostgresClient.Create(&model.Part{
+			SessionID:  sessionID,
+			PartNumber: part.PartNumber,
+			ETag:       part.ETag,
+			SizeBytes:  part.SizeBytes,
+		})
+	}
+}
+
+func updateFolderMetadata(folderID *uint) {
+	if folderID == nil {
+		return
+	}
+
+	var totalSize uint64
+	var totalFile int64
+
+	// Count total files and sum their sizes in the folder
+	err := config.PostgresClient.Model(&model.File{}).
+		Where("folder_id = ?", *folderID).
+		Count(&totalFile).
+		Select("COALESCE(SUM(size),0)").
+		Row().
+		Scan(&totalSize)
+	if err != nil {
+		return
+	}
+
+	// Update folder metadata
+	config.PostgresClient.Model(&model.Folder{}).
+		Where("id = ?", *folderID).
+		Updates(map[string]interface{}{
+			"total_file": totalFile,
+			"total_size": totalSize,
+		})
 }

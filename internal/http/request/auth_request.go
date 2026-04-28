@@ -16,6 +16,7 @@ type ForgotPasswordRequest struct {
 }
 
 type ChangePasswordRequest struct {
+	OldPassword     string `json:"old_password" validate:"required"`
 	Password        string `json:"password" validate:"required"`
 	PasswordConfirm string `json:"password_confirm" validate:"required"`
 }

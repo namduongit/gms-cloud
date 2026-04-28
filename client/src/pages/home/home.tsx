@@ -2,28 +2,28 @@ import { createElement, useEffect } from "react";
 import { Link } from "react-router";
 import PublicLayout from "../../components/layout/public-layout";
 
-const highlights = [
+const features = [
     {
-        title: "Quản lý file và folder",
-        description: "Lưu file ở root hoặc trong thư mục, điều hướng bằng breadcrumb giống Google Drive.",
+        icon: "fa-regular fa-folder-open",
+        title: "Quản lý file & folder",
+        description: "Tổ chức tệp theo thư mục, điều hướng bằng breadcrumb.",
     },
     {
-        title: "Quản lý URL",
-        description: "Tạo, theo dõi và thao tác liên kết rút gọn trong một workspace thống nhất.",
+        icon: "fa-solid fa-link",
+        title: "Short URL",
+        description: "Tạo và theo dõi liên kết rút gọn trong một workspace.",
     },
     {
-        title: "API & tài khoản",
-        description: "Đấu nối API, xem thông tin hồ sơ và quản lý phiên đăng nhập trong cùng hệ thống.",
+        icon: "fa-solid fa-key",
+        title: "API & Developer",
+        description: "Quản lý token API, xem tài liệu tích hợp trực tiếp.",
     },
 ];
 
 const HomePage = () => {
     useEffect(() => {
-        const existingScript = document.querySelector("script[data-dotlottie-player='true']");
-        if (existingScript) {
-            return;
-        }
-
+        const existing = document.querySelector("script[data-dotlottie-player='true']");
+        if (existing) return;
         const script = document.createElement("script");
         script.src = "https://unpkg.com/@lottiefiles/dotlottie-wc@0.9.10/dist/dotlottie-wc.js";
         script.type = "module";
@@ -33,133 +33,116 @@ const HomePage = () => {
 
     return (
         <PublicLayout>
-            <section className="space-y-6">
-                <div className="grid items-center gap-5 rounded-xl border border-[#d6e4fb] bg-linear-to-b from-[#f8fbff] to-white p-5 md:grid-cols-[1.2fr_0.8fr] md:p-8">
+            <div className="space-y-6">
+                {/* Hero */}
+                <section className="grid items-center gap-8 md:grid-cols-[1fr_auto]">
                     <div>
-                        <p className="text-sm font-semibold text-[#1a73e8]">GMS Cloud</p>
-                        <h1 className="bottom-to-top mt-2 text-3xl font-semibold leading-tight text-gray-900 md:text-5xl">
-                            Nơi mọi file và URL của bạn được sắp xếp rõ ràng.
+                        <p className="text-xs font-semibold uppercase tracking-widest text-[#1a73e8]">GMS Cloud</p>
+                        <h1 className="mt-3 text-4xl font-semibold leading-tight text-gray-900 md:text-5xl">
+                            File, URL và API<br />trong một nơi.
                         </h1>
-                        <p className="bottom-to-top mt-4 max-w-2xl text-sm leading-6 text-gray-500 md:text-base">
-                            Lưu trữ file, chia sẻ ảnh bằng link public, theo dõi plan và quản lý API token trong cùng một dashboard.
+                        <p className="mt-4 max-w-lg text-base text-gray-500">
+                            Lưu trữ file, rút gọn liên kết và quản lý API token trong cùng một dashboard đơn giản.
                         </p>
-
-                        <div className="left-to-right mt-6 flex flex-col gap-3 sm:flex-row">
+                        <div className="mt-6 flex flex-wrap gap-3">
                             <Link
                                 to="/auth/register"
-                                className="inline-flex items-center justify-center rounded-md bg-[#1a73e8] px-6 py-3 text-sm font-semibold text-white hover:bg-blue-700"
+                                className="inline-flex items-center gap-2 rounded-lg bg-[#1a73e8] px-5 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 transition-colors"
                             >
-                                <i className="fa-solid fa-rocket mr-2"></i>
-                                Dùng thử ngay
+                                Bắt đầu miễn phí
                             </Link>
                             <Link
-                                to="/auth/login"
-                                className="inline-flex items-center justify-center rounded-md border border-gray-300 px-6 py-3 text-sm font-semibold text-gray-900 hover:bg-gray-100"
+                                to="/document"
+                                className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-5 py-2.5 text-sm font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
                             >
-                                <i className="fa-solid fa-right-to-bracket mr-2"></i>
-                                Đăng nhập
+                                <i className="fa-regular fa-file-lines text-gray-400" />
+                                Xem tài liệu
                             </Link>
                         </div>
                     </div>
 
-                    <div className="top-to-bottom flex justify-center">
+                    <div className="hidden justify-center md:flex">
                         {createElement("dotlottie-wc", {
                             src: "https://lottie.host/a76e30db-976c-45e7-9bed-efe7c84c8317/GKUs9NOScO.lottie",
-                            style: { width: "280px", height: "280px" },
+                            style: { width: "260px", height: "260px" },
                             autoplay: true,
                             loop: true,
                         })}
                     </div>
-                </div>
+                </section>
 
-                <div className="grid gap-3 md:grid-cols-3">
-                    {highlights.map((item, idx) => (
-                        <article key={item.title} className="bottom-to-top rounded-lg border border-gray-300/90 bg-white p-4"
-                            style={{ animationDelay: `${idx * 0.15}s` }}
-                        >
-                            <p className="text-base font-semibold text-gray-900">{item.title}</p>
-                            <p className="mt-2 text-sm leading-6 text-gray-500">{item.description}</p>
-                        </article>
+                {/* Feature cards */}
+                <section className="grid gap-3 sm:grid-cols-3">
+                    {features.map((f) => (
+                        <div key={f.title} className="rounded-lg border border-gray-200 bg-white p-5">
+                            <div className="mb-3 flex h-9 w-9 items-center justify-center rounded-md border border-gray-200 text-[#1a73e8]">
+                                <i className={`${f.icon} text-sm`} />
+                            </div>
+                            <p className="text-sm font-semibold text-gray-900">{f.title}</p>
+                            <p className="mt-1.5 text-sm text-gray-500">{f.description}</p>
+                        </div>
                     ))}
-                </div>
+                </section>
 
-                <div className="grid gap-4 rounded-xl border border-gray-300/90 bg-white p-5 md:grid-cols-[1.05fr_0.95fr] md:p-6 overflow-hidden">
-                    <div className="left-to-right">
-                        <h2 className="text-xl font-semibold text-gray-900">Dịch vụ & tài liệu</h2>
-                        <p className="mt-2 text-sm text-gray-500">Truy cập nhanh các khu vực chính và tài liệu tích hợp.</p>
-
-                        <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                            <Link to="/page/file" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
-                                <span className="block text-xs text-gray-500">Storage</span>
-                                <i className="fa-regular fa-folder-open mr-2 text-[#1a73e8]"></i>
-                                Quản lý file & folder
-                            </Link>
-                            <Link to="/page/url" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
-                                <span className="block text-xs text-gray-500">Short Link</span>
-                                <i className="fa-solid fa-link mr-2 text-[#1a73e8]"></i>
-                                Quản lý URL
-                            </Link>
-                            <Link to="/page/account/info" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
-                                <span className="block text-xs text-gray-500">Account</span>
-                                <i className="fa-regular fa-user mr-2 text-[#1a73e8]"></i>
-                                Hồ sơ tài khoản
-                            </Link>
-                            <Link to="/page/account/api" className="rounded-md border border-gray-300/90 bg-white px-3 py-3 text-sm font-medium text-gray-800 hover:border-[#c9dafc] hover:bg-[#f8fbff]">
-                                <span className="block text-xs text-gray-500">Developer</span>
-                                <i className="fa-solid fa-code mr-2 text-[#1a73e8]"></i>
-                                API Dashboard
-                            </Link>
-                        </div>
-
-                        <div className="mt-4 flex flex-wrap gap-2">
-                            <a
-                                href="/docs.md"
-                                target="_blank"
-                                rel="noreferrer"
-                                className="inline-flex items-center rounded-md bg-[#1a73e8] px-3 py-2 text-sm font-semibold text-white hover:bg-blue-700"
-                            >
-                                <i className="fa-regular fa-file-lines mr-2"></i>
-                                Docs
-                            </a>
-                            <Link
-                                to="/page/account/api"
-                                className="inline-flex items-center rounded-md border border-gray-300/90 px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-50"
-                            >
-                                <i className="fa-solid fa-book-open mr-2 text-[#1a73e8]"></i>
-                                API Reference
-                            </Link>
+                {/* Quick access + contact */}
+                <section className="grid gap-4 md:grid-cols-2">
+                    {/* Quick access */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-5">
+                        <p className="text-sm font-semibold text-gray-900">Truy cập nhanh</p>
+                        <p className="mt-1 text-xs text-gray-400">Đi thẳng đến từng phần của hệ thống.</p>
+                        <div className="mt-4 space-y-1">
+                            {[
+                                { to: "/page/files", label: "Quản lý file & folder", sub: "Storage" },
+                                { to: "/page/urls", label: "Short URL", sub: "Link" },
+                                { to: "/page/account/info", label: "Hồ sơ tài khoản", sub: "Account" },
+                                { to: "/page/account/api", label: "API Dashboard", sub: "Developer" },
+                            ].map((item) => (
+                                <Link
+                                    key={item.to}
+                                    to={item.to}
+                                    className="flex items-center justify-between rounded-md px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                                >
+                                    <span>{item.label}</span>
+                                    <span className="text-xs text-gray-400">{item.sub}</span>
+                                </Link>
+                            ))}
                         </div>
                     </div>
 
-                    <div className="top-to-bottom rounded-lg border border-[#d6e4fb] bg-linear-to-b from-[#f8fbff] to-white p-4">
-                        <h3 className="text-base font-semibold text-gray-900">Liên hệ triển khai</h3>
-                        <p className="mt-1 text-sm text-gray-500">Sẵn sàng hỗ trợ tích hợp, vận hành và tùy biến dịch vụ.</p>
-
-                        <div className="mt-4 space-y-2">
-                            <a href="mailto:nguyennamduong205@gmail.com" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                <span><i className="fa-regular fa-envelope mr-2 text-[#1a73e8]"></i>Email</span>
-                                <span className="font-medium text-gray-900">nguyennamduong205@gmail.com</span>
-                            </a>
-                            <a href="tel:0388853835" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                <span><i className="fa-solid fa-phone mr-2 text-[#1a73e8]"></i>SĐT</span>
-                                <span className="font-medium text-gray-900">0388853835</span>
-                            </a>
-                            <a href="https://github.com/namduongit" target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                <span><i className="fa-brands fa-github mr-2 text-[#1a73e8]"></i>GitHub</span>
-                                <span className="font-medium text-gray-900">namduongit</span>
-                            </a>
-                            <a href="https://facebook.com/namduongit" target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-md border border-gray-300/90 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
-                                <span><i className="fa-brands fa-facebook mr-2 text-[#1a73e8]"></i>Facebook</span>
-                                <span className="font-medium text-gray-900">namduongit</span>
-                            </a>
+                    {/* Contact */}
+                    <div className="rounded-lg border border-gray-200 bg-white p-5">
+                        <p className="text-sm font-semibold text-gray-900">Liên hệ</p>
+                        <p className="mt-1 text-xs text-gray-400">Hỗ trợ tích hợp, vận hành và tùy biến.</p>
+                        <div className="mt-4 space-y-1">
+                            {[
+                                { icon: "fa-regular fa-envelope", label: "Email", value: "nguyennamduong205@gmail.com", href: "mailto:nguyennamduong205@gmail.com" },
+                                { icon: "fa-solid fa-phone", label: "SĐT", value: "0388853835", href: "tel:0388853835" },
+                                { icon: "fa-brands fa-github", label: "GitHub", value: "namduongit", href: "https://github.com/namduongit" },
+                                { icon: "fa-brands fa-facebook", label: "Facebook", value: "namduongit", href: "https://facebook.com/namduongit" },
+                            ].map((c) => (
+                                <a
+                                    key={c.href}
+                                    href={c.href}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="flex items-center justify-between rounded-md px-3 py-2 text-sm hover:bg-gray-50 transition-colors"
+                                >
+                                    <span className="flex items-center gap-2 text-gray-500">
+                                        <i className={`${c.icon} w-4 text-center`} />
+                                        {c.label}
+                                    </span>
+                                    <span className="text-gray-700">{c.value}</span>
+                                </a>
+                            ))}
                         </div>
                     </div>
-                </div>
+                </section>
 
-                <footer className="border-t border-gray-300/90 pt-4 text-sm text-gray-500">
-                    <p>GMS Cloud Service - File, URL, API và Account Management.</p>
+                {/* Footer */}
+                <footer className="border-t border-gray-200 pt-5 text-xs text-gray-400">
+                    GMS Cloud · File, URL & API Management
                 </footer>
-            </section>
+            </div>
         </PublicLayout>
     );
 };

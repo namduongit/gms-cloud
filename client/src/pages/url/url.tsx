@@ -19,8 +19,10 @@ const UrlPage = () => {
 
     const [searchInput, setSearchInput] = useState("");
     const [searchKeyword, setSearchKeyword] = useState("");
+
     const [itemsPerPage, setItemsPerPage] = useState<number>(10);
     const [currentPage, setCurrentPage] = useState<number>(1);
+    
     const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
     
     const { showToast } = useNotificate();

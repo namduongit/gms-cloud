@@ -81,7 +81,7 @@ func CreateMultipart(ctx context.Context, objectKey string, contentType string) 
 	return aws.ToString(out.UploadId), nil
 }
 
-func CompleteMultipart(ctx context.Context, objectKey string, uploadID string, parts []CompletePart) error {
+func CompleteMultipart(ctx context.Context, objectKeyTmp string, objectKeyFinal string, uploadID string, parts []CompletePart) error {
 	var completedParts []s3Types.CompletedPart
 	for _, part := range parts {
 		completedParts = append(completedParts, s3Types.CompletedPart{
@@ -90,13 +90,54 @@ func CompleteMultipart(ctx context.Context, objectKey string, uploadID string, p
 		})
 	}
 
+	// Complete multipart upload in tmp bucket
 	_, err := S3Client.CompleteMultipartUpload(ctx, &s3.CompleteMultipartUploadInput{
 		Bucket:   aws.String(cfg.MinIOTmpBucketName),
-		Key:      aws.String(objectKey),
+		Key:      aws.String(objectKeyTmp),
 		UploadId: aws.String(uploadID),
 		MultipartUpload: &s3Types.CompletedMultipartUpload{
 			Parts: completedParts,
 		},
+	})
+	if err != nil {
+		return err
+	}
+
+	// Copy object from tmp bucket to final bucket
+	_, err = S3Client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(cfg.MiniOFinalBucketName),
+		Key:        aws.String(objectKeyFinal),
+		CopySource: aws.String(cfg.MinIOTmpBucketName + "/" + objectKeyFinal),
+	})
+	if err != nil {
+		return err
+	}
+
+	_, err = S3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(cfg.MinIOTmpBucketName),
+		Key:    aws.String(objectKeyFinal),
+	})
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// Optionally, you can expose helpers for copy and delete if needed elsewhere
+func CopyObject(ctx context.Context, srcBucket, srcKey, dstBucket, dstKey string) error {
+	_, err := S3Client.CopyObject(ctx, &s3.CopyObjectInput{
+		Bucket:     aws.String(dstBucket),
+		Key:        aws.String(dstKey),
+		CopySource: aws.String(srcBucket + "/" + srcKey),
+	})
+	return err
+}
+
+func DeleteObject(ctx context.Context, bucket, key string) error {
+	_, err := S3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+		Bucket: aws.String(bucket),
+		Key:    aws.String(key),
 	})
 	return err
 }

@@ -9,38 +9,33 @@ interface UrlSearchToolbarProps {
 
 const UrlSearchToolbar = ({ searchInput, onSearchInputChange, onSearch, onReload }: UrlSearchToolbarProps) => {
     return (
-        <div className="flex flex-col gap-3 px-1 py-2 md:flex-row md:items-center md:justify-between">
-            <div className="flex w-full items-center gap-2 md:max-w-xl">
-                <div className="flex h-10 w-full items-center gap-2 rounded-md border border-gray-300 bg-white px-3">
-                    <i className="fa-solid fa-magnifying-glass text-xs text-gray-500"></i>
-                    <input
-                        type="text"
-                        value={searchInput}
-                        onChange={(event) => onSearchInputChange(event.target.value)}
-                        onKeyDown={(event) => {
-                            if (event.key === "Enter") {
-                                onSearch();
-                            }
-                        }}
-                        placeholder="Tìm theo mã, id, URL"
-                        className="w-full bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                    />
-                </div>
-                <Button
-                    type="button"
-                    className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100"
-                    onClick={onSearch}
-                >
-                    Tìm
-                </Button>
+        <div className="flex items-center gap-2 py-2">
+            {/* Search input */}
+            <div className="flex h-9 flex-1 items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 focus-within:border-[#1a73e8] transition-colors max-w-md">
+                <i className="fa-solid fa-magnifying-glass text-xs text-gray-400" />
+                <input
+                    type="text"
+                    value={searchInput}
+                    onChange={(e) => onSearchInputChange(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && onSearch()}
+                    placeholder="Tìm theo mã, URL…"
+                    className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+                />
             </div>
 
             <Button
-                type="button"
-                className="inline-flex items-center justify-center gap-2 rounded-md border border-gray-300 bg-white px-3 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100"
+                className="h-9 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+                onClick={onSearch}
+            >
+                Tìm
+            </Button>
+
+            <Button
+                className="flex h-9 items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-700 hover:bg-gray-50 transition-colors"
                 onClick={() => void onReload()}
             >
-                Làm mới
+                <i className="fa-solid fa-rotate text-xs" />
+                <span className="hidden sm:inline">Làm mới</span>
             </Button>
         </div>
     );

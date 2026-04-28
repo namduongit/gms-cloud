@@ -28,17 +28,17 @@ const UrlTable = ({
     onNextPage,
 }: UrlTableProps) => {
     return (
-        <div className="mt-2 overflow-hidden bg-white">
-            <div className="flex items-center justify-between border-b border-gray-200 bg-gray-50 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-gray-500">
-                <span>Danh sách đường dẫn</span>
+        <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+            <div className="flex items-center justify-between border-b border-gray-100 px-4 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400">
+                <span>Đường dẫn</span>
                 <span>{totalItems} mục</span>
             </div>
 
-            <div className="hidden border-b border-gray-200 px-4 py-2 text-[11px] font-semibold uppercase tracking-wide text-gray-500 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_180px] md:gap-4">
-                <span>Tên + mã</span>
+            <div className="hidden border-b border-gray-100 px-4 py-2 text-[11px] font-medium uppercase tracking-wide text-gray-400 md:grid md:grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0,1.5fr)_180px] md:gap-4">
+                <span>Mã + ngày tạo</span>
                 <span>Ghi chú</span>
                 <span>URL</span>
-                <span className="text-right">Thao tác</span>
+                <span className="text-right">Hành động</span>
             </div>
 
             <div className="divide-y divide-gray-200">

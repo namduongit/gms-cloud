@@ -56,8 +56,8 @@ func SetupRouter() *gin.Engine {
 
 		protected.POST("/presign-upload", handler.PresignUpload)
 		protected.POST("/sign-upload/:uuid", handler.SignUpload)
-		protected.POST("/upload-part/:uuid", handler.UploadPart)
-		protected.POST("/complete-upload/:uuid", handler.CompleteUpload)
+		protected.POST("/complete-multipart-upload/:uuid", handler.CompleteMultipartUpload)
+		protected.POST("/complete-single-upload/:uuid", handler.CompleteSingleUpload)
 
 		// protected.GET("/profile", handler.GetProfile)
 		// protected.PUT("/profile", handler.UpdateProfile)
@@ -68,8 +68,9 @@ func SetupRouter() *gin.Engine {
 
 		protected.GET("/folders", handler.GetFolders)
 		protected.POST("/folders", handler.CreateFolder)
-		// protected.DELETE("/folders/:uuid", handler.DeleteFolder)
-		// protected.PUT("/folders/:uuid", handler.UpdateFolder)
+		protected.GET("/folders/:uuid", handler.GetFolderDetail)
+		protected.DELETE("/folders/:uuid", handler.DeleteFolder)
+		protected.PATCH("/folders/:uuid", handler.RenameFolder)
 
 		protected.GET("/files", handler.GetFiles)
 		protected.DELETE("/files/:uuid", handler.DeleteFile)

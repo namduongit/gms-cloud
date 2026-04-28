@@ -15,6 +15,8 @@ var jwtKey = []byte(config.GetConfig().JWTSecret)
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
+		// c.Next()
+		// return
 		tokenStr := ""
 		if cookieToken, err := c.Cookie("accessToken"); err == nil && cookieToken != "" {
 			tokenStr = cookieToken

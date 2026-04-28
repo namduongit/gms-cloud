@@ -41,8 +41,10 @@ type Session struct {
 	ObjectKeyTmp   string `gorm:"not null"`
 	ObjectKeyFinal string `gorm:"not null"`
 
-	// null nếu single upload
+	// null if single upload
 	S3UploadID *string `gorm:"type:text"`
+
+	FolderID *uint
 
 	Status SessionStatus `gorm:"type:varchar(20);not null;default:'initiated';index:idx_sessions_account_status_exp,priority:2"`
 

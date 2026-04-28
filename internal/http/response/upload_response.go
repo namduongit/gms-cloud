@@ -4,6 +4,7 @@ import "time"
 
 type PresignUploadResponse struct {
 	ClientFileID string    `json:"client_file_id"`
+	FileName     string    `json:"file_name"`
 	SessionUUID  string    `json:"session_uuid"`
 	Mode         string    `json:"mode"`
 	Reason       string    `json:"reason"`
@@ -13,5 +14,5 @@ type PresignUploadResponse struct {
 }
 
 type SignUploadResponse struct {
-	UploadURL string `json:"upload_url"`
+	UploadURLs []string `json:"upload_urls"`
 }

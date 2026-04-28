@@ -5,7 +5,6 @@ import "time"
 type FileResponse struct {
 	UUID        string    `json:"uuid"`
 	FileName    string    `json:"file_name"`
-	FileType    string    `json:"file_type"`
 	ContentType string    `json:"content_type"`
 	Size        uint64    `json:"size"`
 	IsShared    bool      `json:"is_shared"`
@@ -17,10 +16,4 @@ type FileResponse struct {
 type FileListResponse struct {
 	OwnerUUID string         `json:"owner_uuid"`
 	Files     []FileResponse `json:"files"`
-}
-
-type FileShareResponse struct {
-	UUID        string `json:"uuid"`
-	IsShared    bool   `json:"is_shared"`
-	DownloadURL string `json:"download_url"`
 }

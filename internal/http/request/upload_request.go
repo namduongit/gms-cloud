@@ -8,15 +8,21 @@ type MetadataFile struct {
 }
 
 type PresignUploadRequest struct {
-	Files []MetadataFile `json:"files" validate:"required"`
+	Files      []MetadataFile `json:"files" validate:"required"`
+	FolderUUID *string        `json:"destination_uuid"`
 }
 
 type SignUploadRequest struct {
-	PartNumber *int32 `json:"part_number"`
+	IsMulti *bool   `json:"is_multi"`
+	Parts   []int32 `json:"parts"`
 }
 
-type UploadPartRequest struct {
-	PartNumber int32  `json:"part_number" validate:"required"`
-	ETag       string `json:"etag" validate:"required"`
-	SizeBytes  uint64 `json:"size_bytes" validate:"required"`
+type CompleteMultipartUploadRequest struct {
+	PartCompletes []PartComplete `json:"part_completes"`
+}
+
+type PartComplete struct {
+	PartNumber int32  `json:"part_number"`
+	ETag       string `json:"etag"`
+	SizeBytes  uint64 `json:"size_bytes"`
 }

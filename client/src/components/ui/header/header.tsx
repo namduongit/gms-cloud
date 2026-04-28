@@ -1,78 +1,59 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router";
 import { useAuthenticate } from "../../../common/hooks/useAuthenticate";
 import Button from "../button/button";
 
-type SearchSuggestion = {
-    lable: string;
-    description: string;
-    icon: React.ReactNode; 
-    directURL: string;
+type Suggestion = {
+    label: string;
+    path: string;
+    icon: string;
+};
 
-}
-
-const searchSuggestions: SearchSuggestion[] = [
-    {
-        lable: "Trang chủ",
-        description: "Đi đến trang chủ của GMS Cloud",
-        icon: <i className="fa-solid fa-house"></i>,
-        directURL: "/"
-    },
-    {
-        lable: "Tệp của tôi",
-        description: "Đi đến trang quản lý tệp của bạn",
-        icon: <i className="fa-solid fa-file"></i>,
-        directURL: "/page/files"
-    },
-    {
-        lable: "API Keys",
-        description: "Đi đến trang quản lý API Keys",
-        icon: <i className="fa-solid fa-key"></i>,
-        directURL: "/page/account/api"
-    },
-    {
-        lable: "Thông tin tài khoản",
-        description: "Đi đến trang thông tin tài khoản của bạn",
-        icon: <i className="fa-solid fa-user"></i>,
-        directURL: "/page/account/info"
-    },
-    {
-        lable: "Link rút gọn của tôi",
-        description: "Đi đến trang quản lý link rút gọn của bạn",
-        icon: <i className="fa-solid fa-link"></i>,
-        directURL: "/page/urls"
-    },
-    {
-        lable: "Document API",
-        description: "Đi đến trang tài liệu API của GMS Cloud",
-        icon: <i className="fa-solid fa-book"></i>,
-        directURL: "/page/documentation"
-    },
-    {
-        lable: "Hỗ trợ",
-        description: "Đi đến trang hỗ trợ của GMS Cloud",
-        icon: <i className="fa-solid fa-headset"></i>,
-        directURL: "/page/support"
-    },
-    {
-        lable: "Quản lý gói dịch vụ",
-        description: "Đi đến trang quản lý gói dịch vụ của bạn",
-        icon: <i className="fa-solid fa-box"></i>,
-        directURL: "/page/account/plan"
-    }
-]
+const suggestions: Suggestion[] = [
+    { label: "Tệp của tôi", path: "/page/files", icon: "fa-regular fa-folder-open" },
+    { label: "Short URL", path: "/page/urls", icon: "fa-solid fa-link" },
+    { label: "API Keys", path: "/page/account/api", icon: "fa-solid fa-key" },
+    { label: "Thông tin tài khoản", path: "/page/account/info", icon: "fa-regular fa-user" },
+    { label: "Quản lý gói", path: "/page/plans", icon: "fa-regular fa-gem" },
+    { label: "Documentation", path: "/document", icon: "fa-regular fa-file-lines" },
+];
 
 const Header = () => {
     const navigate = useNavigate();
     const { state, clearState } = useAuthenticate();
-    const [open, setOpen] = useState(false);
 
-    const [searchTerm, setSearchTerm] = useState("");
-    const [showSuggestions, setShowSuggestions] = useState(false);
-    const [suggestions, setSuggestions] = useState<SearchSuggestion[]>([]);
+    const [search, setSearch] = useState("");
+    const [showDropdown, setShowDropdown] = useState(false);
+    const [showUserMenu, setShowUserMenu] = useState(false);
 
-    const handleNavigate = (path: string) => {
-        setOpen(false);
+    const searchRef = useRef<HTMLDivElement>(null);
+    const userMenuRef = useRef<HTMLDivElement>(null);
+
+    const filtered = search.trim()
+        ? suggestions.filter(
+              (s) =>
+                  s.label.toLowerCase().includes(search.toLowerCase()) ||
+                  s.path.toLowerCase().includes(search.toLowerCase())
+          )
+        : suggestions;
+
+    // Close on outside click
+    useEffect(() => {
+        const handler = (e: MouseEvent) => {
+            if (searchRef.current && !searchRef.current.contains(e.target as Node)) {
+                setShowDropdown(false);
+            }
+            if (userMenuRef.current && !userMenuRef.current.contains(e.target as Node)) {
+                setShowUserMenu(false);
+            }
+        };
+        document.addEventListener("mousedown", handler);
+        return () => document.removeEventListener("mousedown", handler);
+    }, []);
+
+    const goTo = (path: string) => {
+        setShowDropdown(false);
+        setShowUserMenu(false);
         if (path === "/auth/logout") {
             clearState();
             window.location.href = "/auth/login";
@@ -81,89 +62,91 @@ const Header = () => {
         navigate(path);
     };
 
-    useEffect(() => {
-        console.log("Search term:", searchTerm);
-        if (searchTerm.trim() === "") {
-            setSuggestions([]);
-            setShowSuggestions(false);
-            return;
-        }
-
-        const filtered = searchSuggestions.filter(suggestion =>
-            suggestion.lable.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            suggestion.description.toLowerCase().includes(searchTerm.toLowerCase())
-        );
-
-        setSuggestions(filtered);
-        setShowSuggestions(true);
-    }, [searchTerm]);
+    const userMenuItems = [
+        { label: "Thông tin", path: "/page/account/info" },
+        { label: "API Keys", path: "/page/account/api" },
+        { label: "Đăng xuất", path: "/auth/logout" },
+    ];
 
     return (
-        <header className="flex flex-col gap-3 rounded-2xl border border-gray-300/90 bg-white px-4 py-3 md:flex-row md:items-center md:justify-between md:px-5">
-            <div className="flex items-center gap-4">
-                <div className="grid h-11 w-11 place-items-center rounded-xl bg-[#1a73e8] text-base font-black text-white shadow">
+        <div className="flex h-14 items-center gap-4">
+            {/* Brand */}
+            <div className="flex shrink-0 items-center gap-3">
+                <div className="grid h-8 w-8 place-items-center rounded-md bg-[#1a73e8] text-xs font-black text-white">
                     GMS
                 </div>
-                <div>
-                    <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Workspace</p>
-                    <p className="text-lg font-semibold text-gray-900">GMS Cloud</p>
-                </div>
+                <span className="hidden text-sm font-semibold text-gray-900 lg:block">GMS Cloud</span>
             </div>
 
-            <div className="flex w-full items-center gap-3 md:w-auto">
-                <div className="relative flex h-11 w-full items-center gap-2 rounded-xl border border-gray-300/90 bg-white px-4 text-sm text-gray-500 md:w-96">
-                    <span aria-hidden="true" className="text-base">
-                        <i className="fa-solid fa-magnifying-glass"></i>
-                    </span>
+            {/* Search */}
+            <div className="relative flex-1 max-w-lg" ref={searchRef}>
+                <div className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 bg-gray-50 px-3 focus-within:border-[#1a73e8] focus-within:bg-white transition-colors">
+                    <i className="fa-solid fa-magnifying-glass text-sm text-gray-400" />
                     <input
                         type="text"
-                        placeholder="Tìm trong GMS Cloud"
-                        className="w-full border-none bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
+                        placeholder="Tìm kiếm..."
+                        className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        onFocus={() => setShowDropdown(true)}
                     />
-                    {showSuggestions && suggestions.length > 0 && (
-                        <div className="absolute top-full mt-1 w-full left-0 rounded-xl border border-gray-300/90 bg-white shadow z-10">
-                            {suggestions.map((suggestion) => (
-                                <div
-                                    key={suggestion.directURL}
-                                    className="flex items-center gap-3 px-4 py-2 hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => handleNavigate(suggestion.directURL)}
-                                >
-                                    <span className="text-base text-gray-500">{suggestion.icon}</span>
-                                    <div>
-                                        <p className="text-sm font-medium text-gray-900">{suggestion.lable}</p>
-                                        <p className="text-xs text-gray-500">{suggestion.description}</p>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
+                    {search && (
+                        <button onClick={() => setSearch("")} className="text-gray-400 hover:text-gray-600">
+                            <i className="fa-solid fa-xmark text-xs" />
+                        </button>
                     )}
                 </div>
 
-                <div className="relative shrink-0">
+                {showDropdown && (
+                    <div className="absolute top-full left-0 z-30 mt-1 w-full overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                        {filtered.length === 0 ? (
+                            <p className="px-4 py-3 text-sm text-gray-400">Không tìm thấy kết quả</p>
+                        ) : (
+                            filtered.map((s) => (
+                                <button
+                                    key={s.path}
+                                    className="flex w-full items-center gap-3 px-4 py-2.5 text-left text-sm hover:bg-gray-50 transition-colors"
+                                    onClick={() => goTo(s.path)}
+                                >
+                                    <i className={`${s.icon} w-4 text-center text-gray-400`} />
+                                    <span className="text-gray-800">{s.label}</span>
+                                </button>
+                            ))
+                        )}
+                    </div>
+                )}
+            </div>
+
+            {/* Right */}
+            <div className="flex shrink-0 items-center gap-2 ml-auto">
+                {/* User menu */}
+                <div className="relative" ref={userMenuRef}>
                     <Button
-                        className="rounded-xl flex flex-row items-center justify-center gap-3 border border-gray-300/90 bg-white px-3 py-2 text-sm font-semibold text-gray-900 transition hover:bg-gray-50"
-                        onClick={() => setOpen((prev) => !prev)}
+                        className="flex h-9 items-center gap-2 rounded-lg border border-gray-200 bg-white pl-2 pr-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                        onClick={() => setShowUserMenu((v) => !v)}
                     >
-                        <span className="grid h-8 w-8 place-items-center rounded-xl bg-[#1a73e8] text-white">
-                            <i className="fa-solid fa-user"></i>
+                        <span className="grid h-6 w-6 place-items-center rounded-full bg-[#1a73e8] text-xs text-white font-semibold">
+                            {(state?.email?.[0] ?? "U").toUpperCase()}
                         </span>
-                        <span className="hidden sm:block">
-                            {state?.email || "User"}
-                        </span>
+                        <span className="hidden max-w-36 truncate sm:block">{state?.email ?? "User"}</span>
+                        <i className="fa-solid fa-chevron-down text-xs text-gray-400" />
                     </Button>
-                    {open && (
-                        <div className="absolute right-0 mt-3 w-52 overflow-hidden rounded-xl border border-gray-300/90 bg-white shadow-sm z-10">
-                            {[
-                                { label: "Thông tin", path: "/page/account/info" },
-                                { label: "Đấu API", path: "/page/account/api" },
-                                { label: "Đăng xuất", path: "/auth/logout" },
-                            ].map((item) => (
+
+                    {showUserMenu && (
+                        <div className="absolute right-0 top-full z-30 mt-1 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
+                            <div className="border-b border-gray-100 px-4 py-2.5">
+                                <p className="truncate text-xs font-semibold text-gray-900">{state?.email}</p>
+                                <p className="text-xs text-gray-400">{state?.plan?.name ?? "Free"}</p>
+                            </div>
+                            {userMenuItems.map((item) => (
                                 <Button
                                     key={item.path}
-                                    className="w-full px-4 py-2.5 text-left text-sm text-gray-900 transition hover:bg-gray-100 cursor-pointer"
-                                    onClick={() => handleNavigate(item.path)}
+                                    className={`w-full px-4 py-2 text-left text-sm transition-colors hover:bg-gray-50 ${
+                                        item.path === "/auth/logout"
+                                            ? "text-red-600"
+                                            : "text-gray-700"
+                                    }`}
+                                    onClick={() => goTo(item.path)}
                                 >
                                     {item.label}
                                 </Button>
@@ -172,7 +155,7 @@ const Header = () => {
                     )}
                 </div>
             </div>
-        </header>
+        </div>
     );
 };
 

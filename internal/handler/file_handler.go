@@ -27,15 +27,21 @@ func GetFiles(c *gin.Context) {
 
 	fileResponses := make([]response.FileResponse, len(files))
 	for i, file := range files {
+		var folderName = "root"
+		var folderUUID *string = nil
+		if file.FolderID != nil {
+			folderName = file.Folder.Name
+			uuidStr := file.Folder.UUID.String()
+			folderUUID = &uuidStr
+		}
 		fileResponses[i] = response.FileResponse{
 			UUID:        file.UUID.String(),
 			FileName:    file.FileName,
-			FileType:    string(file.FileType),
 			ContentType: file.ContentType,
 			Size:        file.Size,
 			IsShared:    file.IsShared,
-			FolderUUID:  nil,
-			FolderName:  "root",
+			FolderUUID:  folderUUID,
+			FolderName:  folderName,
 			UploadedAt:  file.CreatedAt,
 		}
 	}

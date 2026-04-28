@@ -56,7 +56,7 @@ const PlanPage = () => {
         return plans.map((plan) => {
             const isCurrentPlan = Boolean(
                 plan.uuid === currentPlan.uuid ||
-                    plan.name.toLowerCase() === currentPlan.name.toLowerCase()
+                plan.name.toLowerCase() === currentPlan.name.toLowerCase()
             );
 
             return {
@@ -72,38 +72,35 @@ const PlanPage = () => {
     }, [plans, currentPlan.uuid, currentPlan.name]);
 
     return (
-        <div className="space-y-4">
-            <header className="rounded-xl border border-gray-300/90 bg-white p-5">
-                <p className="text-sm font-semibold text-gray-500">Plan</p>
-                <h1 className="mt-1 text-2xl font-semibold text-gray-900">Gói dịch vụ</h1>
-                <p className="mt-1 text-sm text-gray-500">Theo dõi mức sử dụng và so sánh các gói.</p>
-
-                <div className="mt-4 grid gap-3 md:grid-cols-2">
-                    <div className="rounded-lg border border-gray-300/90 bg-white p-3">
-                        <p className="text-xs font-semibold uppercase text-gray-500">Gói hiện tại</p>
-                        <p className="mt-1 text-sm font-semibold text-gray-900">
-                            {currentPlan.name || "Chưa xác định"}
-                        </p>
-                    </div>
-                    <div className="rounded-lg border border-gray-300/90 bg-white p-3">
-                        <p className="text-xs font-semibold uppercase text-gray-500">Dung lượng</p>
-                        <p className="mt-1 text-sm font-semibold text-gray-900">
-                            {formatFileSize(usage?.used_storage ?? 0)}/{formatFileSize(usage?.total_bytes ?? 0)}
-                        </p>
-                    </div>
+        <div className="space-y-5">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-xl font-semibold text-gray-900">Gói dịch vụ</h1>
+                    <p className="mt-0.5 text-sm text-gray-500">Theo dõi mức sử dụng và so sánh các gói.</p>
                 </div>
-            </header>
+            </div>
 
-            <section className="rounded-xl border border-gray-300/90 bg-white p-5">
-                <h2 className="text-xl font-semibold text-gray-900">Danh sách gói</h2>
-                <p className="text-sm text-gray-500">Chọn gói phù hợp với nhu cầu hiện tại.</p>
-                <div className="mt-4 grid gap-4 lg:grid-cols-3">
+            <div className="grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Gói hiện tại</p>
+                    <p className="mt-1.5 text-base font-semibold text-gray-900">{currentPlan.name || "—"}</p>
+                </div>
+                <div className="rounded-lg border border-gray-200 bg-white p-4">
+                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Dung lượng</p>
+                    <p className="mt-1.5 text-base font-semibold text-gray-900">
+                        {formatFileSize(usage?.used_storage ?? 0)} / {formatFileSize(usage?.total_bytes ?? 0)}
+                    </p>
+                </div>
+            </div>
+
+            <div>
+                <h2 className="mb-3 text-sm font-semibold text-gray-700">Tất cả gói</h2>
+                <div className="grid gap-4 lg:grid-cols-3">
                     {!loading && planCards.length === 0 && (
-                        <div className="rounded-lg border border-gray-300/90 bg-white px-4 py-8 text-sm text-gray-500 lg:col-span-3">
-                            Hiện chưa có dữ liệu gói dịch vụ từ server.
+                        <div className="rounded-lg border border-gray-200 bg-white px-4 py-8 text-sm text-gray-400 lg:col-span-3">
+                            Chưa có dữ liệu gói dịch vụ.
                         </div>
                     )}
-
                     {planCards.map((plan) => (
                         <PlanCard
                             key={plan.key}
@@ -116,7 +113,7 @@ const PlanPage = () => {
                         />
                     ))}
                 </div>
-            </section>
+            </div>
         </div>
     );
 };

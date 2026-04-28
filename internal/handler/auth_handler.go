@@ -247,6 +247,16 @@ func ChangePassword(c *gin.Context) {
 
 	account := c.MustGet("account").(*model.Account)
 
+	// Verify old password before allowing change
+	if err := bcrypt.CompareHashAndPassword([]byte(account.Password), []byte(req.OldPassword)); err != nil {
+		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
+			"Old password is incorrect",
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
+
 	if req.Password != req.PasswordConfirm {
 		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
 			"Password and confirm password do not match",
@@ -256,17 +266,7 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	hashed, err := bcrypt.GenerateFromPassword([]byte(req.Password), bcrypt.DefaultCost)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
-			err.Error(),
-			config.RestFulInvalid,
-			config.RestFulCodeInvalid,
-		))
-		return
-	}
-
-	err = service.UpdateAccountPassword(account, string(hashed))
+	err := service.UpdateAccountPassword(account, req.Password)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, config.GinErrorResponse(
 			err.Error(),
@@ -319,32 +319,20 @@ func Logout(c *gin.Context) {
 }
 
 /*
-* Activation method
-* TODO: Check in redis -> If token valid, activate account and delete token in redis -> If token invalid, return error
+ * Activation method
+ * TODO: Check in redis -> If token valid, activate account and delete token in redis -> If token invalid, return error
+ * Redirect to CLIENT_HOST/verify/success if valid, CLIENT_HOST/verify/failed if invalid
  */
 func Activation(c *gin.Context) {
 	email := c.Query("email")
 	token := c.Query("activate-key")
 
 	if err := service.ActivateAccount(email, token); err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			config.GinErrorResponse(
-				err.Error(),
-				config.RestFulInvalid,
-				config.RestFulCodeInvalid,
-			))
+		c.Redirect(http.StatusFound, cfg.ClientHost+"/verify/failed")
 		return
 	}
 
-	c.JSON(
-		http.StatusOK,
-		config.GinResponse(
-			nil,
-			config.RestFulSuccess,
-			nil,
-			config.RestFulCodeSuccess,
-		))
+	c.Redirect(http.StatusFound, cfg.ClientHost+"/verify/success")
 }
 
 func ResendActivationEmail(c *gin.Context) {

@@ -1,642 +1,288 @@
 import { useCallback, useEffect, useState } from "react";
-import { useExecute } from "../../common/hooks/useExecute";
-import { v4 as uuidv4 } from "uuid";
-import { useNotificate } from "../../common/hooks/useNotificate";
-import { FileModule } from "../../services/modules/file.module";
+import { useParams, useNavigate } from "react-router";
+import type { SignUploadResponse, FileListResponse, FileMetadata, FileResponse, PartComplete, PresignUploadForm, PresignUploadResponse } from "../../services/types/file.type";
+import type { FolderDetailResponse, FolderListResponse, FolderResponse } from "../../services/types/folder.type";
+
+import FileToolbar from "../../components/ui/file-page/file-toolbar";
+import FilePreviewSection from "../../components/ui/file-page/file-preview-section";
+import FileListSection from "../../components/ui/file-page/file-list-section";
+
+import CreateFolderModal from "../../components/ui/modal/folder/create/create";
+import RenameFolderModal from "../../components/ui/modal/folder/rename/rename";
+import CreateFileModal from "../../components/ui/modal/file/create/create";
+
 import { FolderModule } from "../../services/modules/folder.module";
-import type { FileListResponse, FileResponse, PresignUploadForm, PresignUploadResponse, SignUploadResponse } from "../../services/types/file.type";
-import type { FolderListResponse, FolderResponse } from "../../services/types/folder.type";
-import FileExplorer from "../../components/ui/file-page/file-explorer";
-import Button from "../../components/ui/button/button";
-import CreateFolderModal from "../../components/ui/modal/create-folder/create-folder-modal";
-import CreateFileModal from "../../components/ui/modal/create-file/create-file-modal";
-import RenameFolderModal from "../../components/ui/modal/rename-folder/rename-folder-modal";
-import ShareFileModal from "../../components/ui/modal/share-file/share-file-modal";
-import SideFile from "../../components/ui/sidefile/sidefile";
-import type { AxiosRequestConfig } from "axios";
-import axios from "axios";
+import { FileModule } from "../../services/modules/file.module";
 import { UploadModule } from "../../services/modules/upload.module";
+import { useExecute } from "../../common/hooks/useExecute";
+import { useNotificate } from "../../common/hooks/useNotificate";
+import { v4 } from "uuid";
+import axios from "axios";
 
 const FilePage = () => {
+    const { folderUUID } = useParams<{ folderUUID: string }>();
+    const navigate = useNavigate();
+
+    const { executeWithDeclareResponse, loading } = useExecute();
+    const { executeWithDeclareResponse: executeApi } = useExecute();
+
+    const { showToast, showAlert } = useNotificate();
+
+    const { GetFolders, GetFolderByUuid, CreateFolder, RenameFolder } = FolderModule;
+    const { GetFiles } = FileModule;
     const {
-        GetFiles,
-        ShareFile, UnshareFile,
-        DownloadFile, DeleteFile
-    } = FileModule;
-    const { GetFolders, CreateFolder, RenameFolder, DeleteFolder } = FolderModule;
-    const { PresignUpload, SignUpload, UploadPart, CompeltePart } = UploadModule;
-
-    const { showToast } = useNotificate();
-
-    const [folders, setFolders] = useState<FolderResponse[]>([]);
-    const [currentFolder, setCurrentFolder] = useState<FolderResponse | null>(null);
-    const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
-    const [isRenameFolderModalOpen, setIsRenameFolderModalOpen] = useState(false);
-    const [targetRenameFolder, setTargetRenameFolder] = useState<FolderResponse | null>(null);
+        PresignUpload,
+        SignSingleUpload, SignMultipartUpload,
+        CompleteSingleUpload, CompelteMultipartUpload
+    } = UploadModule;
 
     const [files, setFiles] = useState<FileResponse[]>([]);
-    const [isCreateFileModalOpen, setIsCreateFileModalOpen] = useState(false);
-    const [isShareModalOpen, setIsShareModalOpen] = useState(false);
-    const [selectedShareFile, setSelectedShareFile] = useState<FileResponse | null>(null);
-    const [selectedPreviewImage, setSelectedPreviewImage] = useState<FileResponse | null>(null);
+    const [folders, setFolders] = useState<FolderResponse[]>([]);
+    const [folderPath, setFolderPath] = useState<FolderResponse[]>([]);
 
-    const { execute: executeGetFolders } = useExecute<FolderListResponse>();
-    const { execute: executeCreateFolder } = useExecute<FolderResponse>();
-    const { execute: executeRenameFolder } = useExecute<FolderResponse>();
-    const { execute: executeDeleteFolder } = useExecute<null>();
+    const fetchData = useCallback(async () => {
+        if (!folderUUID) {
+            await Promise.all([
+                executeWithDeclareResponse<FileListResponse>(() => GetFiles(), {
+                    onSuccess: (data) => {
+                        const files = data.files.filter((f: any) => f.folder_uuid == null);
+                        setFiles(files);
+                    },
+                }),
+                executeWithDeclareResponse<FolderListResponse>(() => GetFolders(), {
+                    onSuccess: (data) => setFolders(data?.folders || []),
+                }),
+            ]);
+            return;
+        }
 
-    const { executeWithDeclareResponse } = useExecute();
-    const { execute: executeGetFiles } = useExecute<FileListResponse>();
-    const { execute: executeDeleteFile } = useExecute<any>();
-    const { execute: executeShareFile, loading: sharingFile } = useExecute<FileResponse>();
-    const { execute: executeUnshareFile, loading: unsharingFile } = useExecute<FileResponse>();
-
-    const loadFiles = useCallback(async () => {
-        await executeGetFiles(() => GetFiles(), {
+        await executeWithDeclareResponse<FolderDetailResponse>(() => GetFolderByUuid(folderUUID), {
             onSuccess: (data) => {
-                if (data && Array.isArray(data.files)) {
-                    setFiles(data.files);
-                    return;
-                }
-                setFiles([]);
-            }
+                setFiles(data.files || []);
+                setFolderPath(data.folder ? [data.folder] : []);
+            },
         });
-    }, []);
-
-    const loadFolders = useCallback(async () => {
-        await executeGetFolders(() => GetFolders(), {
-            onSuccess: (data) => {
-                if (data && Array.isArray(data.folders)) {
-                    setFolders(data.folders);
-                    return;
-                }
-            }
-        });
-    }, []);
+    }, [folderUUID]);
 
     useEffect(() => {
-        void loadFiles();
-        void loadFolders();
-    }, []);
+        setFiles([]);
+        setFolders([]);
+        setFolderPath([]);
+        fetchData();
+    }, [folderUUID]);
 
-    const [openMenu, setOpenMenu] = useState<boolean>(false);
+    // Modal states
+    const [isCreateFolderOpen, setIsCreateFolderOpen] = useState(false);
+    const [isRenameFolderOpen, setIsRenameFolderOpen] = useState(false);
 
-    const destinationLabel = currentFolder ? `GMS Cloud > ${currentFolder.name}` : "GMS Cloud";
-    const visibleFolders = currentFolder ? [] : folders;
-    const visibleFiles = currentFolder
-        ? files.filter((file) => file.folder_uuid === currentFolder.uuid)
-        : files.filter((file) => !file.folder_uuid);
-
-    const handleCreateFolder = async (folderName: string) => {
-        const createdFolder = await executeCreateFolder(() => CreateFolder({ name: folderName }), {
+    const handleCreateFolder = async (name: string) => {
+        await executeApi(() => CreateFolder({ name }), {
             onSuccess: (data) => {
-                if (!data) {
-                    return;
-                }
-
-                setFolders((previous) => [data, ...previous]);
-            }
+                setFolders((prev) => [...prev, data]);
+                setIsCreateFolderOpen(false);
+                showToast({ type: "success", title: "Thành công", message: "Tạo thư mục thành công" });
+            },
         });
-
-        return Boolean(createdFolder);
-    };
-
-    const handleSignUpload = async (
-        dataSet: PresignUploadResponse,
-        file: File
-    ) => {
-        /** Single mode */
-        if (dataSet.mode === "single") {
-            const sign = await executeWithDeclareResponse<SignUploadResponse>(() => SignUpload(dataSet.session_uuid));
-            if (!sign) {
-                showToast({
-                    type: "error",
-                    title: "Upload thất bại",
-                    message: `Không thể upload file ${file.name} vào lúc này. Vui lòng thử lại.`,
-                });
-                return;
-            }
-
-            // Upload file to storage with the sign upload url and session id as a header
-            const config: AxiosRequestConfig = {
-                url: sign.upload_url,
-                method: "PUT",
-                data: file,
-                headers: {
-                    "Content-Type": "application/octet-stream",
-                }
-            }
-
-            const result = await axios.request(config);
-            
-            if (result.status === 200) {
-                // Call complete upload API to complete the upload process
-                CompeltePart(dataSet.session_uuid);
-            }
-        }
-
-        /** Multipart mode */
-        if (dataSet.mode === "multipart") {
-            // Split file into parts
-            const partCount = Math.ceil(file.size / dataSet.part_size);
-            const parts: {
-                number: number;
-                data: Blob
-            }[] = [];
-
-            for (let partNumber = 1; partNumber <= partCount; partNumber++) {
-                const start = (partNumber - 1) * dataSet.part_size;
-                const end = Math.min(start + dataSet.part_size, file.size);
-                    parts.push({
-                        number: partNumber,
-                        data: file.slice(start, end),
-                    });
-            }
-
-            for (const part of parts) {
-                const sign = await executeWithDeclareResponse<SignUploadResponse>(() => SignUpload(dataSet.session_uuid, part.number));
-                if (!sign) {
-                    showToast({
-                        type: "error",
-                        title: "Upload thất bại",
-                        message: `Không thể upload file ${file.name} vào lúc này. Vui lòng thử lại.`,
-                    });
-                    return;
-                }
-
-                const config: AxiosRequestConfig = {
-                    url: sign.upload_url,
-                    method: "PUT",
-                    data: part.data,
-                    headers: {
-                        "Content-Type": "application/octet-stream",
-                    }
-                }
-
-                const result = await axios.request(config);
-                if (result.status === 200) {
-                    const Etag = (result.headers.Etag || result.headers.etag) as string;
-
-                    const sizeBytes = part.data.size;
-                    // Send Etag & Session ID & Part Number to store to complete the part upload
-                    await UploadPart(dataSet.session_uuid, part.number, Etag.trim().replace(/"/g, ''), sizeBytes);
-                }
-            }
-
-            await CompeltePart(dataSet.session_uuid);
-
-        }
-
-
     }
 
+    const handleRenameFolder = async (uuid: string, name: string) => {
+        await executeApi(() => RenameFolder(uuid, name), {
+            onSuccess: (data) => {
+                setFolders((prev) => prev.map((f) => (f.uuid === data.uuid ? data : f)));
+                if (folderPath.length > 0 && folderPath[folderPath.length - 1].uuid === data.uuid) {
+                    setFolderPath((prev) => [...prev.slice(0, -1), data]);
+                }
+                setIsRenameFolderOpen(false);
+                showToast({ type: "success", title: "Thành công", message: "Đổi tên thư mục thành công" });
+            },
+        });
+    }
+
+    const [isCreateFileOpen, setIsCreateFileOpen] = useState(false);
+
     const handleUploadFiles = async (files: File[]) => {
-        try {
-            // Identify each file with a client_file_id
-            const fileMap = new Map<string, File>();
-            const metadata = files.map((file) => {
-
-                const client_file_id = uuidv4();
-                fileMap.set(client_file_id, file);
-
-                return {
-                    client_file_id,
-                    name: file.name,
-                    size: file.size,
-                    type: file.type,
-                };
-            });
-            const presignData: PresignUploadForm = {
-                files: metadata
-            }
-
-            if (currentFolder) {
-                presignData.destination_uuid = currentFolder.uuid;
-            }
-
-            // Presign upload to get session ids 
-            const presignResponse = await executeWithDeclareResponse<PresignUploadResponse[]>(() => PresignUpload(presignData));
-
-            if (!presignResponse) throw new Error("Presign upload failed");
-
-            presignResponse.forEach(async (item) => {
-                if (item.accepted && item.session_uuid) {
-                    // Push to client state to show uploading status (Optional)
-
-                    // Call SignUpload to get the upload URL and then upload the file to the URL with the session id as a header
-                    handleSignUpload(item, fileMap.get(item.client_file_id)!);
-                } else {
-                    showToast({
-                        type: "error",
-                        title: "Không thể upload file",
-                        message: `File ${item.client_file_id} không được chấp nhận để upload. Lý do: ${item.reason}`,
-                    })
-                }
-            });
-
-        } catch (error: unknown) {
-
-        }
-
-        setIsCreateFileModalOpen(false);
-    };
-
-    const handleOpenRenameFolderModal = (folder: FolderResponse) => {
-        setTargetRenameFolder(folder);
-        setIsRenameFolderModalOpen(true);
-    };
-
-    const handleCloseRenameFolderModal = () => {
-        setIsRenameFolderModalOpen(false);
-        setTargetRenameFolder(null);
-    };
-
-    const handleRenameFolder = async (folderName: string) => {
-        if (!targetRenameFolder) {
-            return false;
-        }
-
-        const renamedFolder = await executeRenameFolder(() => RenameFolder(targetRenameFolder.uuid, folderName), {
-            onSuccess: (updated) => {
-                if (!updated) {
-                    return;
-                }
-
-                setFolders((previous) =>
-                    previous.map((item) => (item.uuid === targetRenameFolder.uuid ? { ...item, name: updated.name } : item))
-                );
-
-                setCurrentFolder((previous) => {
-                    if (!previous || previous.uuid !== targetRenameFolder.uuid) {
-                        return previous;
-                    }
-
-                    return { ...previous, name: updated.name };
-                });
-
-                setTargetRenameFolder((previous) => {
-                    if (!previous || previous.uuid !== targetRenameFolder.uuid) {
-                        return previous;
-                    }
-
-                    return { ...previous, name: updated.name };
-                });
-
-                showToast({
-                    type: "success",
-                    title: "Đổi tên thành công",
-                    message: `Thư mục đã được đổi tên thành ${updated.name}.`,
-                });
-            },
-            onError: () => {
-                showToast({
-                    type: "error",
-                    title: "Đổi tên thất bại",
-                    message: `Không thể đổi tên thư mục ${targetRenameFolder.name}.`,
-                });
-            }
+        const mapFiles: Record<string, File> = {};
+        const presignUploadData: PresignUploadForm = {} as PresignUploadForm;
+        const fileMetadatas: FileMetadata[] = files.map((file) => {
+            const client_file_id = v4();
+            mapFiles[client_file_id] = file;
+            return {
+                client_file_id,   // reuse same UUID — bug fix
+                name: file.name,
+                size: file.size,
+                type: file.type,
+            };
         });
 
-        return Boolean(renamedFolder);
-    };
-
-    const handleDeleteFolder = async (folder: FolderResponse) => {
-        const confirmDelete = window.confirm(`Bạn có chắc muốn xóa thư mục ${folder.name}?`);
-        if (!confirmDelete) {
-            return;
+        presignUploadData.files = fileMetadatas;
+        if (folderUUID) {
+            presignUploadData.destination_uuid = folderUUID;
         }
 
-        await executeDeleteFolder(() => DeleteFolder(folder.uuid), {
-            onSuccess: () => {
-                setFolders((previous) => previous.filter((item) => item.uuid !== folder.uuid));
-                if (currentFolder?.uuid === folder.uuid) {
-                    setCurrentFolder(null);
-                }
-
-                showToast({
-                    type: "success",
-                    title: "Đã xóa thư mục",
-                    message: `Thư mục ${folder.name} đã được xóa.`,
-                });
-            },
-            onError: () => {
-                showToast({
-                    type: "error",
-                    title: "Xóa thư mục thất bại",
-                    message: `Không thể xóa thư mục ${folder.name}.`,
-                });
-            }
-        });
-    };
-
-    const updateFileShareState = (fileUUID: string, isShared: boolean) => {
-        setFiles((previous) =>
-            previous.map((file) => (file.uuid === fileUUID ? { ...file, is_shared: isShared } : file))
+        const presignResponse = await executeApi<PresignUploadResponse[]>(
+            () => PresignUpload(presignUploadData)
         );
 
-        setSelectedShareFile((previous) => {
-            if (!previous || previous.uuid !== fileUUID) {
-                return previous;
-            }
-
-            return { ...previous, is_shared: isShared };
-        });
-    };
-
-    const handleOpenShareModal = (file: FileResponse) => {
-        setSelectedShareFile(file);
-        setIsShareModalOpen(true);
-    };
-
-    const handleCloseShareModal = () => {
-        setIsShareModalOpen(false);
-        setSelectedShareFile(null);
-    };
-
-    const handleShareFile = async (file: FileResponse) => {
-        await executeShareFile(() => ShareFile(file.uuid), {
-            onSuccess: () => {
-                updateFileShareState(file.uuid, true);
-                showToast({
-                    type: "success",
-                    title: "Chia sẻ thành công",
-                    message: `File ${file.file_name} đã được bật chia sẻ.`,
-                });
-
-                void loadFiles();
-            },
-            onError: () => {
-                showToast({
-                    type: "error",
-                    title: "Không thể chia sẻ",
-                    message: `File ${file.file_name} chưa được chia sẻ.`,
-                });
-            }
-        });
-    };
-
-    const handleUnshareFile = async (file: FileResponse) => {
-        await executeUnshareFile(() => UnshareFile(file.uuid), {
-            onSuccess: () => {
-                updateFileShareState(file.uuid, false);
-                showToast({
-                    type: "success",
-                    title: "Đã hủy chia sẻ",
-                    message: `File ${file.file_name} đã tắt chia sẻ.`,
-                });
-
-                void loadFiles();
-            },
-            onError: () => {
-                showToast({
-                    type: "error",
-                    title: "Không thể hủy chia sẻ",
-                    message: `File ${file.file_name} chưa thể tắt chia sẻ.`,
-                });
-            }
-        });
-    };
-
-    const handleCopyShareLink = async () => {
-        if (!selectedShareFile || !selectedShareFile.is_shared) {
-            showToast({
-                type: "warning",
-                title: "Chưa bật chia sẻ",
-                message: "Hãy bật chia sẻ trước khi copy URL.",
+        if (!presignResponse) {
+            showAlert({
+                title: "Lỗi tải lên",
+                message: "Có lỗi xảy ra khi tải dữ liệu lên. Vui lòng thử lại sau."
             });
             return;
         }
 
-        const shareUrl = `${import.meta.env.VITE_ENDPOINT_SHARE_FILE}/${selectedShareFile.uuid}`;
+        presignResponse.forEach((pres) => handleUploadFile(mapFiles[pres.client_file_id], pres));
 
-        try {
-            await navigator.clipboard.writeText(shareUrl);
-            showToast({
-                type: "success",
-                title: "Đã copy URL",
-                message: "Liên kết chia sẻ đã được copy vào clipboard.",
-            });
-        } catch {
+        showToast({
+            type: "success",
+            title: "Thành công",
+            message: "Các tệp đã tải lên thành công. Vui lòng kiểm tra."
+        });
+        setIsCreateFileOpen(false);
+    }
+
+    const handleUploadFile = async (file: File, presignData: PresignUploadResponse) => {
+        if (!presignData.accepted) {
             showToast({
                 type: "error",
-                title: "Copy thất bại",
-                message: "Không thể copy URL, vui lòng thử lại.",
+                title: "Không thể tải lên",
+                message: `${presignData.file_name}: ${presignData.reason}`,
+            });
+            return;
+        }
+
+        if (presignData.mode === "single") {
+            const signResponse = await executeApi<SignUploadResponse>(
+                () => SignSingleUpload(presignData.session_uuid)
+            );
+
+            if (!signResponse) return;
+
+            await axios.request({
+                method: "PUT",
+                url: signResponse.upload_urls[0],
+                data: file,
+            });
+
+            await executeApi(() => CompleteSingleUpload(presignData.session_uuid), {
+                onSuccess(data) {
+                    setFiles(prev => [...prev, data]);
+                },
+            });
+
+        } else if (presignData.mode === "multipart") {
+            const partSize = presignData.part_size;
+            const totalParts = Math.ceil(file.size / partSize);
+            const partNumbers = Array.from({ length: totalParts }, (_, i) => i + 1);
+
+            // Sign tất cả parts một lần → nhận upload_urls[0..N-1]
+            const signResponse = await executeApi<SignUploadResponse>(
+                () => SignMultipartUpload(presignData.session_uuid, partNumbers)
+            );
+
+            if (!signResponse) return;
+
+            // Upload song song từng part, thu thập ETag
+            const partCompletes: PartComplete[] = [];
+
+            await Promise.all(
+                partNumbers.map(async (partNumber, index) => {
+                    const start = index * partSize;
+                    const end = Math.min(start + partSize, file.size);
+                    const chunk = file.slice(start, end);
+
+                    const res = await axios.request({
+                        method: "PUT",
+                        url: signResponse.upload_urls[index],
+                        data: chunk,
+                        headers: { "Content-Type": file.type },
+                    });
+
+                    // S3 trả ETag trong header
+                    const etag = (res.headers["etag"] as string | undefined) ?? "";
+                    partCompletes[index] = {
+                        part_number: partNumber,
+                        etag: etag.replace(/"/g, ""),
+                        size_bytes: end - start,
+                    };
+                })
+            );
+
+            // Hoàn tất multipart upload
+            await executeApi(() => CompelteMultipartUpload(presignData.session_uuid, partCompletes), {
+                onSuccess(data) {
+                    setFiles(prev => [...prev, data]);
+                },
             });
         }
-    };
+    }
 
-    const handleDownloadFile = async (file: FileResponse) => {
-        try {
-            const blob = await DownloadFile(file.uuid);
-            const objectUrl = window.URL.createObjectURL(blob);
-            const anchor = document.createElement("a");
-            anchor.href = objectUrl;
-            anchor.download = file.file_name;
-            document.body.appendChild(anchor);
-            anchor.click();
-            anchor.remove();
-            window.URL.revokeObjectURL(objectUrl);
-        } catch {
-            showToast({
-                type: "error",
-                title: "Tải file thất bại",
-                message: "Không thể tải file này vào lúc này.",
-            });
-        }
-    };
-
-    const handleDeleteFile = async (file: FileResponse) => {
-        const confirmDelete = window.confirm(`Bạn có chắc muốn xóa file ${file.file_name}?`);
-        if (!confirmDelete) {
-            return;
-        }
-        await executeDeleteFile(() => DeleteFile(file.uuid), {
-            onSuccess: () => {
-                setFiles((previous) => previous.filter((item) => item.uuid !== file.uuid));
-                setSelectedShareFile((previous) => (previous?.uuid === file.uuid ? null : previous));
-                setSelectedPreviewImage((previous) => (previous?.uuid === file.uuid ? null : previous));
-                showToast({
-                    type: "success",
-                    title: "Đã xóa file",
-                    message: `${file.file_name} đã được xóa.`,
-                });
-            },
-            onError: () => {
-                showToast({
-                    type: "error",
-                    title: "Xóa file thất bại",
-                    message: `Không thể xóa file ${file.file_name}.`,
-                });
-            }
-        });
-    };
-
-    const handlePreviewImage = (file: FileResponse) => {
-        if (!file.content_type?.startsWith("image/")) {
-            return;
-        }
-
-        setSelectedPreviewImage(file);
-    };
-
-    const resolveFileFolderName = (file: FileResponse) => {
-        if (!file.folder_uuid) {
-            return "GMS Cloud";
-        }
-
-        const folder = folders.find((item) => item.uuid === file.folder_uuid);
-        return folder ? `GMS Cloud > ${folder.name}` : "GMS Cloud";
-    };
-
-    useEffect(() => {
-        if (!selectedPreviewImage) {
-            return;
-        }
-
-        const stillExists = visibleFiles.some((file) => file.uuid === selectedPreviewImage.uuid);
-        if (!stillExists) {
-            setSelectedPreviewImage(null);
-        }
-    }, [selectedPreviewImage, visibleFiles]);
+    // Selected items
+    const [selectedPreviewImage, setSelectedPreviewImage] = useState<FileResponse | null>(null);
+    const [targetRenameFolder, setTargetRenameFolder] = useState<FolderResponse | null>(null);
 
     return (
         <div className="space-y-4">
-            <div className="p-2 flex items-center justify-between">
-                <div>
-                    <h1 className="text-2xl font-semibold text-gray-900">Quản lý File & Folder</h1>
-                    <span className="mt-1 block text-sm text-gray-500">Lưu trữ, chia sẻ, quản lý theo phong cách của bạn</span>
-                </div>
-                <div className="relative">
-                    <Button className="px-3 py-2 border border-gray-300 rounded-md hover:bg-gray-100 text-sm"
-                        onClick={() => setOpenMenu(!openMenu)}
-                    >
-                        <i className="fa-regular fa-calendar-plus"></i>
-                        Tạo mới
-                    </Button>
-
-                    {openMenu && (
-                        <div className="absolute right-0 top-full mt-2 w-48 bg-white border border-gray-200 rounded-md shadow z-10">
-                            <Button
-                                className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                                onClick={() => {
-                                    setIsCreateFolderModalOpen(true);
-                                    setOpenMenu(false);
-                                }}
-                            >
-                                <i className="fa-solid fa-folder-plus"></i>
-                                Thư mục mới
-                            </Button>
-                            <Button
-                                className="flex items-center gap-2 w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-100"
-                                onClick={() => {
-                                    setIsCreateFileModalOpen(true);
-                                    setOpenMenu(false);
-                                }}
-                            >
-                                <i className="fa-solid fa-upload"></i>
-                                Tải file lên
-                            </Button>
-                        </div>
-                    )}
-                </div>
-            </div>
-
-            <div className="flex items-center justify-between rounded-xl border border-gray-200 bg-white px-4 py-3">
-                <div className="flex items-center gap-2 text-sm text-gray-700">
-                    <Button
-                        className={`rounded px-2 py-1 font-semibold ${currentFolder ? "text-[#1a73e8] hover:bg-[#e8f0fe]" : "text-gray-900"}`}
-                        onClick={() => setCurrentFolder(null)}
-                        disabled={!currentFolder}
-                    >
-                        GMS
-                    </Button>
-                    {currentFolder && (
-                        <>
-                            <span className="text-gray-400">&gt;</span>
-                            <span className="font-semibold text-gray-900">{currentFolder.name}</span>
-                        </>
-                    )}
-                </div>
-                {currentFolder && (
-                    <Button
-                        className="rounded-md border border-gray-300 bg-white px-3 py-1 text-sm text-gray-700 hover:bg-gray-100"
-                        onClick={() => setCurrentFolder(null)}
-                    >
-                        <i className="fa-solid fa-arrow-left mr-2"></i>
-                        Back
-                    </Button>
-                )}
-            </div>
-
-            <div className={`grid gap-4 ${selectedPreviewImage ? "lg:grid-cols-[minmax(0,1fr)_20rem]" : "grid-cols-1"}`}>
-                <div>
-                    <div className="flex border-b border-gray-200 bg-gray-50 px-4 py-3 text-sm font-semibold text-gray-600">
-                        <div className="flex flex-3 items-center gap-2">
-                            <i className="fa-solid fa-list-ul text-xs"></i>
-                            Tên
-                        </div>
-                        <div className="flex-1">Ngày tạo</div>
-                        <div className="flex-1">Kích thước</div>
-                        <div className="flex-1 text-end">Hành động</div>
-                    </div>
-
-                    <FileExplorer
-                        files={visibleFiles}
-                        folders={visibleFolders}
-                        onOpenFolder={setCurrentFolder}
-                        onRenameFolder={handleOpenRenameFolderModal}
-                        onDeleteFolder={(folder) => void handleDeleteFolder(folder)}
-                        onShareFile={handleOpenShareModal}
-                        onDownloadFile={(file) => void handleDownloadFile(file)}
-                        onDeleteFile={(file) => void handleDeleteFile(file)}
-                        onPreviewImage={handlePreviewImage}
-                    />
-                </div>
-
-                {selectedPreviewImage && (
-                    <SideFile
-                        file={selectedPreviewImage}
-                        onClose={() => setSelectedPreviewImage(null)}
-                        onFileDeleted={() => {
-                            setFiles((previous) => previous.filter((item) => item.uuid !== selectedPreviewImage.uuid));
-                            setSelectedPreviewImage(null);
-                        }}
-                        resolveFileFolderName={resolveFileFolderName}
-                    />
-                )}
-            </div>
-
-            <CreateFolderModal
-                isOpen={isCreateFolderModalOpen}
-                onClose={() => setIsCreateFolderModalOpen(false)}
-                onSubmit={handleCreateFolder}
+            {/* Toolbar */}
+            <FileToolbar
+                currentFolderPath={folderPath}
+                onNavigateToRoot={() => { if (folderUUID) navigate("/page/files"); }}
+                onNavigateToFolder={(folder) => navigate(`/page/files/${folder.uuid}`)}
+                onCreateFolder={() => setIsCreateFolderOpen(true)}
+                onUploadFiles={() => setIsCreateFileOpen(true)}
             />
 
-            <CreateFileModal
-                isOpen={isCreateFileModalOpen}
-                onClose={() => setIsCreateFileModalOpen(false)}
-                onSubmit={handleUploadFiles}
-                destinationLabel={destinationLabel}
+            {/* Content + preview */}
+            <div className={`grid gap-4 ${selectedPreviewImage ? "lg:grid-cols-[1fr_20rem]" : ""}`}>
+                <FileListSection
+                    files={files}
+                    folders={folders}
+                    loading={loading}
+                    onOpenFolder={(folder) => navigate(`/page/files/${folder.uuid}`)}
+                    onRenameFolder={(folder) => {
+                        setTargetRenameFolder(folder);
+                        setIsRenameFolderOpen(true);
+                    }}
+                    onShareFile={() => { }}
+                    onPreviewImage={(file) => {
+                        if (file.content_type?.startsWith("image/")) setSelectedPreviewImage(file);
+                    }}
+                />
+
+                <FilePreviewSection
+                    selectedPreviewImage={selectedPreviewImage}
+                    folders={folders}
+                    onClose={() => setSelectedPreviewImage(null)}
+                    onFileDeleted={() => setSelectedPreviewImage(null)}
+                />
+            </div>
+
+            {/* Folder Action Modals */}
+            <CreateFolderModal
+                isOpen={isCreateFolderOpen}
+                onClose={() => setIsCreateFolderOpen(false)}
+                onSubmit={handleCreateFolder}
+                loading={loading}
             />
 
             <RenameFolderModal
-                isOpen={isRenameFolderModalOpen}
+                isOpen={isRenameFolderOpen}
                 initialName={targetRenameFolder?.name ?? ""}
-                onClose={handleCloseRenameFolderModal}
+                folderUUID={targetRenameFolder?.uuid ?? ""}
+                onClose={() => { setIsRenameFolderOpen(false); setTargetRenameFolder(null); }}
                 onSubmit={handleRenameFolder}
+                loading={loading}
             />
 
-            <ShareFileModal
-                isOpen={isShareModalOpen}
-                file={selectedShareFile}
-                onClose={handleCloseShareModal}
-                onCopyLink={() => void handleCopyShareLink()}
-                onShare={handleShareFile}
-                onUnshare={handleUnshareFile}
-                processing={sharingFile || unsharingFile}
+            {/* File Action Modals */}
+            <CreateFileModal
+                isOpen={isCreateFileOpen}
+                onClose={() => setIsCreateFileOpen(false)}
+                onSubmit={handleUploadFiles}
+                destinationLabel={folderPath.length > 0 ? `GMS Cloud › ${folderPath[0].name}` : "GMS Cloud"}
             />
         </div>
     );
-}
+};
 
 export default FilePage;

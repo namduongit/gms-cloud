@@ -6,8 +6,8 @@ import Button from "../../components/ui/button/button";
 import { ProfileModule } from "../../services/modules/profile.module";
 import type { ProfileResponse, UpdateProfileForm } from "../../services/types/profile.type";
 
-const inputClasses =
-    "mt-2 w-full rounded-md border border-gray-300 bg-white px-4 py-3 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/15";
+const inputCls =
+    "mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/10 transition-colors";
 
 const defaultForm: UpdateProfileForm = {
     username: "",
@@ -15,132 +15,240 @@ const defaultForm: UpdateProfileForm = {
     full_name: "",
     company_name: "",
     address: "",
-    phone: ""
+    phone: "",
+};
+
+// Fallback initials avatar
+const getInitials = (name: string, email: string) => {
+    if (name.trim()) {
+        return name.trim().split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase();
+    }
+    return (email?.[0] ?? "U").toUpperCase();
 };
 
 const AccountInfoPage = () => {
     const authenticate = useAuthenticate();
     const notificate = useNotificate();
-    const { execute: executeGetProfile, loading: loadingProfile } = useExecute<ProfileResponse>();
-    const { execute: executeUpdateProfile, loading: savingProfile } = useExecute<ProfileResponse>();
+    const { execute: getProfile, loading: loadingProfile } = useExecute<ProfileResponse>();
+    const { execute: saveProfile, loading: saving } = useExecute<ProfileResponse>();
 
     const [form, setForm] = useState<UpdateProfileForm>(defaultForm);
 
+    const email = authenticate.state?.email ?? "";
+    const planName = authenticate.state?.plan?.name ?? "Free";
+
     useEffect(() => {
-        void executeGetProfile(() => ProfileModule.GetProfile(), {
-            onSuccess: (profile: ProfileResponse) => {
+        void getProfile(() => ProfileModule.GetProfile(), {
+            onSuccess: (p) => {
                 setForm({
-                    username: profile.username ?? "",
-                    avatar_url: profile.avatar_url ?? "",
-                    full_name: profile.full_name ?? "",
-                    company_name: profile.company_name ?? "",
-                    address: profile.address ?? "",
-                    phone: profile.phone ?? ""
+                    username: p.username ?? "",
+                    avatar_url: p.avatar_url ?? "",
+                    full_name: p.full_name ?? "",
+                    company_name: p.company_name ?? "",
+                    address: p.address ?? "",
+                    phone: p.phone ?? "",
                 });
             },
             onError: () => {
                 notificate.showToast({
                     type: "error",
                     title: "Không tải được hồ sơ",
-                    message: "Vui lòng thử tải lại trang hoặc kiểm tra đăng nhập."
+                    message: "Vui lòng thử tải lại trang.",
                 });
-            }
+            },
         });
     }, []);
 
-    const handleChange = (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-        const { name, value } = event.target;
+    const handleChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const { name, value } = e.target;
         setForm((prev) => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
-
-        await executeUpdateProfile(() => ProfileModule.UpdateProfile(form), {
-            onSuccess: (profile: ProfileResponse) => {
+    const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+        e.preventDefault();
+        await saveProfile(() => ProfileModule.UpdateProfile(form), {
+            onSuccess: (p) => {
                 setForm({
-                    username: profile.username ?? "",
-                    avatar_url: profile.avatar_url ?? "",
-                    full_name: profile.full_name ?? "",
-                    company_name: profile.company_name ?? "",
-                    address: profile.address ?? "",
-                    phone: profile.phone ?? ""
+                    username: p.username ?? "",
+                    avatar_url: p.avatar_url ?? "",
+                    full_name: p.full_name ?? "",
+                    company_name: p.company_name ?? "",
+                    address: p.address ?? "",
+                    phone: p.phone ?? "",
                 });
-
-                notificate.showToast({
-                    type: "success",
-                    title: "Đã cập nhật hồ sơ",
-                    message: "Thông tin tài khoản đã được lưu thành công."
-                });
+                notificate.showToast({ type: "success", title: "Đã lưu", message: "Hồ sơ đã được cập nhật." });
             },
             onError: () => {
-                notificate.showToast({
-                    type: "error",
-                    title: "Cập nhật thất bại",
-                    message: "Không thể lưu hồ sơ. Vui lòng thử lại."
-                });
-            }
+                notificate.showToast({ type: "error", title: "Lỗi", message: "Không thể lưu. Vui lòng thử lại." });
+            },
         });
     };
 
+    const initials = getInitials(form.full_name, email);
+    const hasAvatar = form.avatar_url.trim().length > 0;
+
     return (
-        <div className="space-y-4">
-            <header className="p-2">
-                <h1 className="text-2xl font-semibold text-gray-900">Thông tin hồ sơ</h1>
-                <span className="mt-1 block text-sm text-gray-500">Cập nhật thông tin cá nhân của tài khoản hiện tại.</span>
-            </header>
+        <form onSubmit={handleSubmit} className="space-y-6">
+            {/* ── Profile hero ─────────────────────────────────────────── */}
+            <div className="flex items-center gap-5 border-b border-gray-100 pb-6">
+                {/* Avatar */}
+                <div className="relative shrink-0">
+                    {hasAvatar ? (
+                        <img
+                            src={form.avatar_url}
+                            alt={form.full_name || email}
+                            className="h-20 w-20 rounded-full object-cover border border-gray-200"
+                            onError={(e) => { (e.target as HTMLImageElement).style.display = "none"; }}
+                        />
+                    ) : (
+                        <div className="flex h-20 w-20 items-center justify-center rounded-full bg-[#1a73e8] text-2xl font-bold text-white select-none">
+                            {initials}
+                        </div>
+                    )}
+                </div>
 
-            <form className="rounded-lg border border-gray-300/90 bg-white p-4 md:p-5" onSubmit={handleSubmit}>
-                <div className="grid gap-4 md:grid-cols-2">
-                    <div>
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="email">Email</label>
-                        <input id="email" name="email" className={`${inputClasses} bg-gray-100`} value={authenticate.state?.email} disabled readOnly />
-                    </div>
+                {/* Name + email */}
+                <div className="min-w-0">
+                    <h1 className="text-xl font-semibold text-gray-900 leading-tight truncate">
+                        {form.full_name || email}
+                    </h1>
+                    <p className="mt-0.5 text-sm text-gray-500 truncate">{email}</p>
 
-                    <div>
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="plan">Gói hiện tại</label>
-                        <input id="plan" name="plan" className={`${inputClasses} bg-gray-100`} value={authenticate.state?.plan?.name} disabled readOnly />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="full_name">Họ và tên</label>
-                        <input id="full_name" name="full_name" className={inputClasses} value={form.full_name} onChange={handleChange} placeholder="Nhập họ và tên" />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="username">Username</label>
-                        <input id="username" name="username" className={inputClasses} value={form.username} onChange={handleChange} placeholder="Nhập username" />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="company_name">Công ty</label>
-                        <input id="company_name" name="company_name" className={inputClasses} value={form.company_name} onChange={handleChange} placeholder="Nhập tên công ty" />
-                    </div>
-
-                    <div>
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="phone">Số điện thoại</label>
-                        <input id="phone" name="phone" className={inputClasses} value={form.phone} onChange={handleChange} placeholder="Nhập số điện thoại" />
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="address">Địa chỉ</label>
-                        <textarea id="address" name="address" className={`${inputClasses} min-h-28 resize-y`} value={form.address} onChange={handleChange} placeholder="Nhập địa chỉ" />
-                    </div>
-
-                    <div className="md:col-span-2">
-                        <label className="text-sm font-semibold text-gray-900" htmlFor="avatar_url">Avatar URL</label>
-                        <input id="avatar_url" name="avatar_url" className={inputClasses} value={form.avatar_url} onChange={handleChange} placeholder="https://..." />
+                    <div className="mt-2 flex flex-wrap items-center gap-2">
+                        {/* Plan badge */}
+                        <span className="inline-flex items-center gap-1.5 rounded-full border border-blue-200 bg-blue-50 px-2.5 py-0.5 text-xs font-medium text-blue-700">
+                            <i className="fa-regular fa-gem text-[10px]" />
+                            {planName}
+                        </span>
+                        {form.username && (
+                            <span className="text-xs text-gray-400">@{form.username}</span>
+                        )}
                     </div>
                 </div>
 
-                <div className="mt-6 flex items-center justify-between gap-3">
-                    <p className="text-sm text-gray-500">{loadingProfile ? "Đang tải hồ sơ..." : "Bạn có thể cập nhật và lưu thông tin bất kỳ lúc nào."}</p>
-                    <Button type="submit" disabled={loadingProfile || savingProfile} className="rounded-md border border-gray-300 px-4 py-2 text-sm font-semibold text-gray-900 hover:bg-gray-100">
-                        {savingProfile ? "Đang lưu..." : "Lưu thay đổi"}
+                {/* Save button — top right on desktop */}
+                <div className="ml-auto hidden sm:block">
+                    <Button
+                        type="submit"
+                        disabled={loadingProfile || saving}
+                        className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                    >
+                        {saving ? "Đang lưu…" : "Lưu thay đổi"}
                     </Button>
                 </div>
-            </form>
-        </div>
+            </div>
+
+            {/* ── Info fields ──────────────────────────────────────────── */}
+            <div className="space-y-5">
+                {/* Row 1: Tên & Username */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label className="text-sm font-medium text-gray-700" htmlFor="full_name">
+                            Họ và tên
+                        </label>
+                        <input
+                            id="full_name"
+                            name="full_name"
+                            className={inputCls}
+                            value={form.full_name}
+                            onChange={handleChange}
+                            placeholder="Nhập họ và tên"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-700" htmlFor="username">
+                            Username
+                        </label>
+                        <input
+                            id="username"
+                            name="username"
+                            className={inputCls}
+                            value={form.username}
+                            onChange={handleChange}
+                            placeholder="Nhập username"
+                        />
+                    </div>
+                </div>
+
+                {/* Row 2: Công ty & SĐT */}
+                <div className="grid gap-4 sm:grid-cols-2">
+                    <div>
+                        <label className="text-sm font-medium text-gray-700" htmlFor="company_name">
+                            Công ty
+                        </label>
+                        <input
+                            id="company_name"
+                            name="company_name"
+                            className={inputCls}
+                            value={form.company_name}
+                            onChange={handleChange}
+                            placeholder="Nhập tên công ty"
+                        />
+                    </div>
+                    <div>
+                        <label className="text-sm font-medium text-gray-700" htmlFor="phone">
+                            Số điện thoại
+                        </label>
+                        <input
+                            id="phone"
+                            name="phone"
+                            className={inputCls}
+                            value={form.phone}
+                            onChange={handleChange}
+                            placeholder="Nhập số điện thoại"
+                        />
+                    </div>
+                </div>
+
+                {/* Row 3: Avatar URL */}
+                <div>
+                    <label className="text-sm font-medium text-gray-700" htmlFor="avatar_url">
+                        Avatar URL
+                    </label>
+                    <input
+                        id="avatar_url"
+                        name="avatar_url"
+                        className={inputCls}
+                        value={form.avatar_url}
+                        onChange={handleChange}
+                        placeholder="https://..."
+                    />
+                    <p className="mt-1 text-xs text-gray-400">
+                        Nhập URL ảnh để hiển thị avatar. Bỏ trống sẽ dùng chữ viết tắt.
+                    </p>
+                </div>
+
+                {/* Row 4: Địa chỉ */}
+                <div>
+                    <label className="text-sm font-medium text-gray-700" htmlFor="address">
+                        Địa chỉ
+                    </label>
+                    <textarea
+                        id="address"
+                        name="address"
+                        rows={3}
+                        className={`${inputCls} resize-none`}
+                        value={form.address}
+                        onChange={handleChange}
+                        placeholder="Nhập địa chỉ"
+                    />
+                </div>
+            </div>
+
+            {/* ── Footer actions (mobile) ───────────────────────────────── */}
+            <div className="flex items-center justify-between border-t border-gray-100 pt-4 sm:hidden">
+                <p className="text-xs text-gray-400">
+                    {loadingProfile ? "Đang tải…" : "Thay đổi sẽ được lưu ngay."}
+                </p>
+                <Button
+                    type="submit"
+                    disabled={loadingProfile || saving}
+                    className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                >
+                    {saving ? "Đang lưu…" : "Lưu thay đổi"}
+                </Button>
+            </div>
+        </form>
     );
 };
 

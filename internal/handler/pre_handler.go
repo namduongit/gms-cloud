@@ -26,11 +26,18 @@ func PresignUpload(c *gin.Context) {
 
 	accountID := c.GetUint("accountID")
 
+	var folderUUID string
+	if req.FolderUUID != nil {
+		folderUUID = *req.FolderUUID
+	} else {
+		folderUUID = ""
+	}
+
 	result, err := service.BatchInit(
 		c,
 		accountID,
 		req.Files,
-		nil,
+		folderUUID,
 	)
 	if err != nil {
 		c.JSON(

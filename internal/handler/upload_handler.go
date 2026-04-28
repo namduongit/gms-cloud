@@ -6,11 +6,32 @@ import (
 	"url-shortener/internal/config"
 	"url-shortener/internal/http/request"
 	"url-shortener/internal/http/response"
+	"url-shortener/internal/model"
 	"url-shortener/internal/service"
 	"url-shortener/libs"
 
 	"github.com/gin-gonic/gin"
 )
+
+// toFileResponse maps a model.File to a response.FileResponse.
+// FolderUUID and FolderName are populated only when the file belongs to a folder
+// (Folder association must be preloaded by the caller, or left nil).
+func toFileResponse(f *model.File) response.FileResponse {
+	r := response.FileResponse{
+		UUID:        f.UUID.String(),
+		FileName:    f.FileName,
+		ContentType: f.ContentType,
+		Size:        f.Size,
+		IsShared:    f.IsShared,
+		UploadedAt:  f.CreatedAt,
+	}
+	if f.Folder != nil {
+		uuidStr := f.Folder.UUID.String()
+		r.FolderUUID = &uuidStr
+		r.FolderName = f.Folder.Name
+	}
+	return r
+}
 
 /**
 * * Generate upload URL for single or multipart upload
@@ -43,9 +64,9 @@ func SignUpload(c *gin.Context) {
 		return
 	}
 
-	url, err := service.SignURLUpload(c, sessionUUID, req.PartNumber)
+	urls, err := service.SignURLUpload(c, sessionUUID, req)
 
-	if err != nil {
+	if len(urls) <= 0 || err != nil {
 		c.JSON(
 			http.StatusBadRequest,
 			config.GinErrorResponse(
@@ -59,7 +80,7 @@ func SignUpload(c *gin.Context) {
 	}
 
 	response := response.SignUploadResponse{
-		UploadURL: url,
+		UploadURLs: urls,
 	}
 
 	c.JSON(
@@ -73,10 +94,7 @@ func SignUpload(c *gin.Context) {
 	)
 }
 
-/**
-* * Store the Etag and size of each part in the database
- */
-func UploadPart(c *gin.Context) {
+func CompleteSingleUpload(c *gin.Context) {
 	sessionUUID := strings.TrimSpace(c.Param("uuid"))
 	if sessionUUID == "" {
 		c.JSON(
@@ -88,7 +106,45 @@ func UploadPart(c *gin.Context) {
 			))
 		return
 	}
-	var req request.UploadPartRequest
+
+	file, err := service.CompleteSingleUpload(c, sessionUUID)
+	if err != nil {
+		c.JSON(
+			http.StatusBadRequest,
+			config.GinErrorResponse(
+				err.Error(),
+				config.RestFulInvalid,
+				config.RestFulCodeInvalid,
+			),
+		)
+		return
+	}
+
+	c.JSON(
+		http.StatusOK,
+		config.GinResponse(
+			toFileResponse(file),
+			config.RestFulSuccess,
+			nil,
+			config.RestFulCodeSuccess,
+		),
+	)
+}
+
+func CompleteMultipartUpload(c *gin.Context) {
+	sessionUUID := strings.TrimSpace(c.Param("uuid"))
+	if sessionUUID == "" {
+		c.JSON(
+			http.StatusBadRequest,
+			config.GinErrorResponse(
+				"Required uuid parameter",
+				config.RestFulInvalid,
+				config.RestFulCodeInvalid,
+			))
+		return
+	}
+
+	var req request.CompleteMultipartUploadRequest
 	if err := libs.WithBind(c, &req); err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -98,52 +154,10 @@ func UploadPart(c *gin.Context) {
 				config.RestFulCodeInvalid,
 			),
 		)
-
 		return
 	}
 
-	err := service.UploadPart(sessionUUID, req.PartNumber, req.ETag, req.SizeBytes)
-	if err != nil {
-		c.JSON(
-			http.StatusBadRequest,
-			config.GinErrorResponse(
-				err.Error(),
-				config.RestFulInvalid,
-				config.RestFulCodeInvalid,
-			),
-		)
-
-		return
-	}
-
-	c.JSON(
-		http.StatusOK,
-		config.GinResponse(
-			nil,
-			config.RestFulSuccess,
-			nil,
-			config.RestFulCodeSuccess,
-		),
-	)
-}
-
-/**
-*
- */
-func CompleteUpload(c *gin.Context) {
-	sessionUUID := strings.TrimSpace(c.Param("uuid"))
-	if sessionUUID == "" {
-		c.JSON(
-			http.StatusBadRequest,
-			config.GinErrorResponse(
-				"Required uuid parameter",
-				config.RestFulInvalid,
-				config.RestFulCodeInvalid,
-			))
-		return
-	}
-
-	err := service.CompleteUpload(c, sessionUUID)
+	file, err := service.CompleteMultipartUpload(c, sessionUUID, req)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -159,7 +173,7 @@ func CompleteUpload(c *gin.Context) {
 	c.JSON(
 		http.StatusOK,
 		config.GinResponse(
-			nil,
+			toFileResponse(file),
 			config.RestFulSuccess,
 			nil,
 			config.RestFulCodeSuccess,

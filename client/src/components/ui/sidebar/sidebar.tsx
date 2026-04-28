@@ -1,69 +1,102 @@
 import { NavLink } from "react-router";
 import { useAuthenticate } from "../../../common/hooks/useAuthenticate";
 
-const links = [
-    { to: "/page/files", label: "Quản lý file", description: "Kho tài liệu cá nhân" },
-    { to: "/page/urls", label: "Quản lý URL", description: "Theo dõi đường dẫn rút gọn" },
-    { to: "/page/plans", label: "Plan", description: "Theo dõi gói hiện tại" },
+const mainLinks = [
+    {
+        to: "/page/files",
+        icon: "fa-regular fa-folder-open",
+        label: "Tệp của tôi",
+    },
+    {
+        to: "/page/urls",
+        icon: "fa-solid fa-link",
+        label: "Short URL",
+    },
+    {
+        to: "/page/plans",
+        icon: "fa-regular fa-gem",
+        label: "Gói dịch vụ",
+    },
 ];
 
-const toGb = (value: number) => value / 1024 / 1024 / 1024;
+const accountLinks = [
+    { to: "/page/account/info", icon: "fa-regular fa-user", label: "Hồ sơ" },
+    { to: "/page/account/api", icon: "fa-solid fa-key", label: "API Keys" },
+    { to: "/page/account/security", icon: "fa-solid fa-shield-halved", label: "Bảo mật" },
+];
 
-const formatToGb = (value: number) => `${toGb(value).toFixed(2)} GB`;
+const toGb = (v: number) => (v / 1024 / 1024 / 1024).toFixed(2);
+
+const NavItem = ({ to, icon, label }: { to: string; icon: string; label: string }) => (
+    <NavLink
+        to={to}
+        className={({ isActive }) =>
+            `flex items-center gap-2.5 rounded-md px-3 py-2 text-sm transition-colors ${isActive
+                ? "bg-blue-50 font-semibold text-blue-700"
+                : "text-gray-700 hover:bg-gray-100 hover:text-gray-900"
+            }`
+        }
+    >
+        <i className={`${icon} w-4 shrink-0 text-center`} />
+        {label}
+    </NavLink>
+);
 
 const Sidebar = () => {
     const { authConfig } = useAuthenticate();
 
-    const usedStorage = authConfig?.usage.used_storage ?? 0;
-    const totalStorage = authConfig?.usage.quota_bytes ?? 0;
-    const usedPercent = totalStorage > 0 ? Math.min(100, Math.round((usedStorage / totalStorage) * 100)) : 0;
+    const used = authConfig?.usage.used_storage ?? 0;
+    const total = authConfig?.usage.quota_bytes ?? 0;
+    const pct = total > 0 ? Math.min(100, Math.round((used / total) * 100)) : 0;
 
     return (
-        <aside className="sticky top-4 rounded-2xl border border-gray-300/90 bg-white p-5">
-            <div className="space-y-2 border-b border-gray-300/90 pb-5">
-                <p className="text-xs font-semibold uppercase tracking-[0.2em] text-gray-500">Drive</p>
-                <p className="text-2xl font-semibold text-gray-900">GMS Cloud</p>
-                <p className="text-xs text-gray-500">Tất cả thư mục, tệp và đường dẫn của bạn ở một nơi.</p>
-            </div>
+        <nav className="flex flex-col gap-px py-1">
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                Drive
+            </p>
+            {mainLinks.map((l) => (
+                <NavItem key={l.to} {...l} />
+            ))}
 
-            <nav className="mt-5 space-y-1.5">
-                {links.map((link) => (
-                    <NavLink
-                        key={link.to}
-                        to={link.to}
-                        className={({ isActive }) => `flex items-center justify-between rounded-xl border px-4 py-3 text-left text-sm transition ${
-                            isActive
-                                ? "border-[#cfe0fc] bg-[#e8f0fe] text-blue-500"
-                                : "border-transparent text-gray-900 hover:border-[#e1e7f2] hover:bg-gray-50"
-                        }`}
-                    >
-                        <div>
-                            <p className="font-semibold">{link.label}</p>
-                            <p className="text-xs text-gray-500">{link.description}</p>
-                        </div>
-                        <span className="text-xs font-semibold">›</span>
-                    </NavLink>
-                ))}
-            </nav>
+            <div className="my-3 h-px bg-gray-100" />
 
-            <div className="mt-6 rounded-2xl border border-gray-300/90 bg-[#f8fbff] px-5 py-4">
-                <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-gray-500">
-                    <span>Dung lượng</span>
-                    <span>{usedPercent}%</span>
+            <p className="mb-1 px-3 text-[10px] font-semibold uppercase tracking-widest text-gray-400">
+                Tài khoản
+            </p>
+            {accountLinks.map((l) => (
+                <NavItem key={l.to} {...l} />
+            ))}
+
+            <div className="my-3 h-px bg-gray-100" />
+
+            <div className="rounded-lg border border-gray-200 bg-white p-4">
+                <div className="flex items-center justify-between text-xs text-gray-500">
+                    <span className="font-medium">Dung lượng</span>
+                    <span className="font-semibold text-gray-700">{pct}%</span>
                 </div>
-                <p className="mt-1 text-xs font-semibold text-gray-900">Gói: {authConfig?.plan_name ?? "Đang tải..."}</p>
-                <p className="mt-1 text-xs text-gray-500">Đã sử dụng {formatToGb(usedStorage)} / {formatToGb(totalStorage)}</p>
-                <div className="mt-4 h-1.5 rounded-full bg-[#dbe3f2]">
-                    <div className="h-full rounded-full bg-[#1a73e8]" style={{ width: `${usedPercent}%` }}></div>
+                <div className="mt-2 h-1 overflow-hidden rounded-full bg-gray-100">
+                    <div
+                        className="h-full rounded-full bg-[#1a73e8] transition-all"
+                        style={{ width: `${pct}%` }}
+                    />
                 </div>
+                <p className="mt-2 text-xs text-gray-500">
+                    {toGb(used)} GB / {toGb(total)} GB
+                </p>
+                <p className="mt-0.5 text-xs text-gray-400">
+                    Gói:{" "}
+                    <span className="font-medium text-gray-600">
+                        {authConfig?.plan_name ?? "—"}
+                    </span>
+                </p>
                 <NavLink
                     to="/page/plans"
-                    className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-gray-300/90 px-3 py-2 text-xs font-semibold uppercase tracking-[0.12em] text-blue-500 transition hover:bg-gray-50"
+                    className="mt-3 block w-full rounded-md border border-gray-200 py-1.5 text-center text-xs font-medium text-[#1a73e8] hover:bg-gray-50 transition-colors"
                 >
                     Nâng cấp
                 </NavLink>
             </div>
-        </aside>
+        </nav>
     );
 };
 
