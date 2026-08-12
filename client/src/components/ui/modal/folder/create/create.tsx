@@ -15,9 +15,9 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit, loading }: CreateFolderM
         return null;
     }
 
-    const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+    const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
         event.preventDefault();
-        onSubmit(folderName);
+        await onSubmit(folderName);
         setFolderName("");
     };
 
@@ -60,14 +60,14 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit, loading }: CreateFolderM
                     <Button
                         type="button"
                         onClick={onClose}
-                        className="rounded-md border border-gray-300/90 px-4 py-1.5 text-gray-900 hover:bg-gray-50"
+                        className="rounded-md border border-gray-300/90 px-4 py-1.5 text-gray-900 hover:bg-gray-50 text-sm"
                         disabled={loading}
                     >
                         Hủy
                     </Button>
                     <Button
                         type="submit"
-                        className="rounded-md bg-[#1a73e8] px-5 py-1.5 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
+                        className="rounded-md bg-[#1a73e8] px-5 py-1.5 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 text-sm"
                         disabled={!folderName.trim() || loading}
                     >
                         {loading ? "Đang tạo..." : "Tạo thư mục"}

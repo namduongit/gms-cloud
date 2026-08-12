@@ -47,7 +47,7 @@ const CreateTokenModal = ({ isOpen, publicToken, privateToken, onClose, onCopyTo
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-[#1f2937]/45 px-4 py-6">
-            <div className="flex w-full max-w-lg flex-col overflow-hidden rounded-lg bg-white shadow">
+            <div className="flex w-full max-w-xl flex-col overflow-hidden rounded-lg bg-white shadow">
                 <div className="flex items-center justify-between border-b border-gray-300/90 px-6 py-4">
                     <div>
                         <h3 className="text-lg font-semibold text-gray-900">Token đã được tạo</h3>
@@ -79,7 +79,7 @@ const CreateTokenModal = ({ isOpen, publicToken, privateToken, onClose, onCopyTo
                 <div className="flex items-center justify-end gap-3 border-t border-gray-300/90 px-6 py-4">
                     <Button
                         type="button"
-                        className="rounded-md  border border-gray-300/90 px-4 py-1.5 text-gray-900 hover:bg-gray-50"
+                        className="rounded-md  border border-gray-300/90 px-4 py-1.5 text-gray-900 hover:bg-gray-50 text-sm font-semibold"
                         onClick={onClose}
                     >
                         Đã lưu, đóng lại

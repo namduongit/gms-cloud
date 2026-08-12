@@ -29,8 +29,13 @@ func GetFolders(c *gin.Context) {
 
 	folderResponses := make([]response.FolderResponse, len(folders))
 	for i, folder := range folders {
+		var parentUUID *string = nil
+		if folder.FolderParentUUID != nil {
+			parentUUID = folder.FolderParentUUID
+		}
 		folderResponses[i] = response.FolderResponse{
 			UUID:       folder.UUID.String(),
+			ParentUUID: parentUUID,
 			Name:       folder.Name,
 			TotalFiles: folder.TotalFile,
 			TotalSize:  folder.TotalSize,
@@ -68,7 +73,7 @@ func CreateFolder(c *gin.Context) {
 
 	account := c.MustGet("account").(*model.Account)
 
-	folder, err := service.CreateFolder(account.ID, req.Name)
+	folder, err := service.CreateFolder(account.ID, req.Name, req.FolderParentUUID)
 	if err != nil {
 		c.JSON(
 			http.StatusBadRequest,
@@ -80,8 +85,14 @@ func CreateFolder(c *gin.Context) {
 		return
 	}
 
+	var parentUUID *string = nil
+	if folder.FolderParentUUID != nil {
+		parentUUID = folder.FolderParentUUID
+	}
+
 	resp := response.FolderResponse{
 		UUID:       folder.UUID.String(),
+		ParentUUID: parentUUID,
 		Name:       folder.Name,
 		TotalFiles: folder.TotalFile,
 		TotalSize:  folder.TotalSize,
@@ -189,8 +200,14 @@ func GetFolderDetail(c *gin.Context) {
 		}
 	}
 
+	var parentUUID *string = nil
+	if folder.FolderParentUUID != nil {
+		parentUUID = folder.FolderParentUUID
+	}
+
 	folderResponse := response.FolderResponse{
 		UUID:       folder.UUID.String(),
+		ParentUUID: parentUUID,
 		Name:       folder.Name,
 		TotalFiles: folder.TotalFile,
 		TotalSize:  folder.TotalSize,

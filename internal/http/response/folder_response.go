@@ -4,6 +4,7 @@ import "time"
 
 type FolderResponse struct {
 	UUID       string    `json:"uuid"`
+	ParentUUID *string   `json:"parent_uuid"`
 	Name       string    `json:"name"`
 	TotalFiles uint64    `json:"total_files"`
 	TotalSize  uint64    `json:"total_size"`

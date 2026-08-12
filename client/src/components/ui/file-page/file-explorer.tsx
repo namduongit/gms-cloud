@@ -209,14 +209,12 @@ const FolderCard = ({
             onDrop={(e) => {
                 e.preventDefault();
                 const file = JSON.parse(e.dataTransfer.getData("file"));
-                const folder = JSON.parse(e.dataTransfer.getData("folder"));
+                // const folder = JSON.parse(e.dataTransfer.getData("folder"));
 
                 if (file) {
-
+                    console.log(file)
                 }
-                else if (folder) {
-
-                }
+                
 
                 setIsDragOver(false);
             }}

@@ -20,9 +20,41 @@ const formatStorageLimit = (value: number) => {
     return `${formatFileSize(value)} lưu trữ`;
 };
 
+// Tính phần trăm dung lượng đã dùng, giới hạn trong khoảng [0, 100].
+// Trả về null khi không xác định được (ví dụ gói không giới hạn / total_bytes <= 0).
+const getStoragePercent = (used: number, total: number): number | null => {
+    if (!total || total <= 0) {
+        return null;
+    }
+    const percent = (used / total) * 100;
+    return Math.min(100, Math.max(0, percent));
+};
+
+const getStorageBarColor = (percent: number) => {
+    if (percent >= 90) return "bg-red-500";
+    if (percent >= 70) return "bg-amber-500";
+    return "bg-blue-500";
+};
+
+const FAQ_ITEMS = [
+    {
+        question: "Tôi có thể nâng cấp hoặc hạ cấp gói bất cứ lúc nào không?",
+        answer: "Có. Bạn có thể liên hệ đội ngũ hỗ trợ để thay đổi gói bất cứ lúc nào, phần dung lượng và các tính năng sẽ được cập nhật ngay sau khi gói mới có hiệu lực.",
+    },
+    {
+        question: "Điều gì xảy ra nếu dung lượng của tôi vượt quá giới hạn gói?",
+        answer: "Bạn vẫn có thể xem và tải các tệp hiện có, nhưng sẽ không thể tải lên tệp mới cho đến khi giải phóng dung lượng hoặc nâng cấp lên gói cao hơn.",
+    },
+    {
+        question: "Gói dịch vụ có tự động gia hạn không?",
+        answer: "Có, các gói trả phí sẽ tự động gia hạn theo chu kỳ trừ khi bạn hủy trước ngày gia hạn tiếp theo.",
+    },
+];
+
 const PlanPage = () => {
     const { authConfig } = useAuthenticate();
     const usage = authConfig?.usage;
+    const [openFaqIndex, setOpenFaqIndex] = useState<number | null>(null);
 
     const currentPlan = {
         uuid: usage?.plan_uuid ?? "",
@@ -71,6 +103,31 @@ const PlanPage = () => {
         });
     }, [plans, currentPlan.uuid, currentPlan.name]);
 
+    const comparisonRows = useMemo(() => {
+        return [...plans]
+            .sort((a, b) => a.price - b.price)
+            .map((plan) => {
+                const isCurrentPlan = Boolean(
+                    plan.uuid === currentPlan.uuid ||
+                    plan.name.toLowerCase() === currentPlan.name.toLowerCase()
+                );
+                return {
+                    key: plan.uuid,
+                    name: plan.name,
+                    price: formatPrice(plan.price),
+                    storage: formatStorageLimit(plan.storage_limit),
+                    isCurrentPlan,
+                };
+            });
+    }, [plans, currentPlan.uuid, currentPlan.name]);
+
+    const usedStorage = usage?.used_storage ?? 0;
+    const totalStorage = usage?.total_bytes ?? 0;
+    const storagePercent = useMemo(
+        () => getStoragePercent(usedStorage, totalStorage),
+        [usedStorage, totalStorage]
+    );
+
     return (
         <div className="space-y-5">
             <div className="flex items-center justify-between">
@@ -86,10 +143,29 @@ const PlanPage = () => {
                     <p className="mt-1.5 text-base font-semibold text-gray-900">{currentPlan.name || "—"}</p>
                 </div>
                 <div className="rounded-lg border border-gray-200 bg-white p-4">
-                    <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Dung lượng</p>
+                    <div className="flex items-center justify-between">
+                        <p className="text-xs font-medium uppercase tracking-wide text-gray-400">Dung lượng</p>
+                        {storagePercent !== null && (
+                            <span className="text-xs font-medium text-gray-500">
+                                {storagePercent.toFixed(0)}%
+                            </span>
+                        )}
+                    </div>
                     <p className="mt-1.5 text-base font-semibold text-gray-900">
-                        {formatFileSize(usage?.used_storage ?? 0)} / {formatFileSize(usage?.total_bytes ?? 0)}
+                        {formatFileSize(usedStorage)} / {totalStorage > 0 ? formatFileSize(totalStorage) : "Không giới hạn"}
                     </p>
+                    {storagePercent !== null && (
+                        <div className="mt-2.5 h-2 w-full overflow-hidden rounded-full bg-gray-100">
+                            <div
+                                className={`h-full rounded-full transition-all duration-500 ${getStorageBarColor(storagePercent)}`}
+                                style={{ width: `${storagePercent}%` }}
+                                role="progressbar"
+                                aria-valuenow={Math.round(storagePercent)}
+                                aria-valuemin={0}
+                                aria-valuemax={100}
+                            />
+                        </div>
+                    )}
                 </div>
             </div>
 
@@ -112,6 +188,75 @@ const PlanPage = () => {
                             actionLabel={plan.isCurrentPlan ? "Gói hiện tại" : "Liên hệ nâng cấp"}
                         />
                     ))}
+                </div>
+            </div>
+
+            {comparisonRows.length > 0 && (
+                <div>
+                    <h2 className="mb-3 text-sm font-semibold text-gray-700">So sánh chi tiết</h2>
+                    <div className="overflow-hidden rounded-lg border border-gray-200 bg-white">
+                        <table className="w-full text-left text-sm">
+                            <thead>
+                                <tr className="border-b border-gray-200 bg-gray-50">
+                                    <th className="px-4 py-2.5 font-medium text-gray-500">Gói</th>
+                                    <th className="px-4 py-2.5 font-medium text-gray-500">Giá</th>
+                                    <th className="px-4 py-2.5 font-medium text-gray-500">Dung lượng</th>
+                                    <th className="px-4 py-2.5 font-medium text-gray-500"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {comparisonRows.map((row) => (
+                                    <tr
+                                        key={row.key}
+                                        className={`border-b border-gray-100 last:border-b-0 ${
+                                            row.isCurrentPlan ? "bg-blue-50/60" : ""
+                                        }`}
+                                    >
+                                        <td className="px-4 py-2.5 font-medium text-gray-900">{row.name}</td>
+                                        <td className="px-4 py-2.5 text-gray-700">{row.price}</td>
+                                        <td className="px-4 py-2.5 text-gray-700">{row.storage}</td>
+                                        <td className="px-4 py-2.5">
+                                            {row.isCurrentPlan && (
+                                                <span className="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">
+                                                    Đang dùng
+                                                </span>
+                                            )}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            )}
+
+            <div>
+                <h2 className="mb-3 text-sm font-semibold text-gray-700">Câu hỏi thường gặp</h2>
+                <div className="divide-y divide-gray-100 rounded-lg border border-gray-200 bg-white">
+                    {FAQ_ITEMS.map((item, index) => {
+                        const isOpen = openFaqIndex === index;
+                        return (
+                            <div key={item.question} className="px-4">
+                                <button
+                                    type="button"
+                                    onClick={() => setOpenFaqIndex(isOpen ? null : index)}
+                                    className="flex w-full items-center justify-between py-3 text-left text-sm font-medium text-gray-900"
+                                >
+                                    <span>{item.question}</span>
+                                    <span
+                                        className={`ml-3 shrink-0 text-gray-400 transition-transform duration-200 ${
+                                            isOpen ? "rotate-45" : ""
+                                        }`}
+                                    >
+                                        +
+                                    </span>
+                                </button>
+                                {isOpen && (
+                                    <p className="pb-3.5 text-sm leading-relaxed text-gray-500">{item.answer}</p>
+                                )}
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
         </div>

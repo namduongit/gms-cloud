@@ -77,7 +77,7 @@ const UploadFileModal = ({
 
     return (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/30 sm:items-center px-4 pb-4 sm:pb-0">
-            <div className="flex w-full max-w-2xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
+            <div className="flex w-full max-w-4xl flex-col overflow-hidden rounded-xl bg-white shadow-xl">
                 {/* Header */}
                 <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                     <div>

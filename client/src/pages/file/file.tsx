@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams, useNavigate, useSearchParams } from "react-router";
 import type { SignUploadResponse, FileListResponse, FileMetadata, FileResponse, PartComplete, PresignUploadForm, PresignUploadResponse } from "../../services/types/file.type";
 import type { FolderDetailResponse, FolderListResponse, FolderResponse } from "../../services/types/folder.type";
@@ -19,6 +19,28 @@ import { useNotificate } from "../../common/hooks/useNotificate";
 import { v4 } from "uuid";
 import axios from "axios";
 
+
+const buildFolderPath = (
+    target: FolderResponse | null | undefined,
+    folders: FolderResponse[]
+): FolderResponse[] => {
+    if (!target) return [];
+
+    const foldersByUuid = new Map(folders.map((f) => [f.uuid, f]));
+    foldersByUuid.set(target.uuid, target);
+
+    const path: FolderResponse[] = [];
+    console.log(target, folders)
+
+    let current: FolderResponse | undefined = target;
+    while (current) {
+        console.log(current.name)
+        path.push(current);
+        current = folders.find(folder => folder.uuid === current?.parent_uuid)
+    }
+
+    return path;
+};
 const FilePage = () => {
     const navigate = useNavigate();
     const { folderUUID } = useParams<{ folderUUID: string }>();
@@ -41,36 +63,49 @@ const FilePage = () => {
     } = UploadModule;
 
     const [files, setFiles] = useState<FileResponse[]>([]);
-    const [folders, setFolders] = useState<FolderResponse[]>([]);
+    const [allFolders, setAllFolders] = useState<FolderResponse[]>([]);
     const [folderPath, setFolderPath] = useState<FolderResponse[]>([]);
 
-    const fetchData = useCallback(async () => {
-        if (!folderUUID) {
-            await Promise.all([
-                executeWithDeclareResponse<FileListResponse>(() => GetFiles(), {
-                    onSuccess: (data) => {
-                        const files = data.files.filter((f: any) => f.folder_uuid == null);
-                        setFiles(files);
-                    },
-                }),
-                executeWithDeclareResponse<FolderListResponse>(() => GetFolders(), {
-                    onSuccess: (data) => setFolders(data?.folders || []),
-                }),
-            ]);
-            return;
-        }
+    const folders = useMemo(() => {
+        const currentParentUUID = folderUUID ?? null;
+        return allFolders.filter((f) => (f.parent_uuid ?? null) === currentParentUUID);
+    }, [allFolders, folderUUID]);
 
-        await executeWithDeclareResponse<FolderDetailResponse>(() => GetFolderByUuid(folderUUID), {
+    const fetchData = useCallback(async () => {
+
+        let allFoldersList: FolderResponse[] = [];
+        await executeWithDeclareResponse<FolderListResponse>(() => GetFolders(), {
             onSuccess: (data) => {
-                setFiles(data.files || []);
-                setFolderPath(data.folder ? [data.folder] : []);
+                allFoldersList = data?.folders || [];
+                setAllFolders(allFoldersList);
             },
         });
+
+        if (!folderUUID) {
+            setFolderPath([]);
+            await executeWithDeclareResponse<FileListResponse>(() => GetFiles(), {
+                onSuccess: (data) => {
+                    const rootFiles = data.files.filter((f: any) => f.folder_uuid == null);
+                    setFiles(rootFiles);
+                },
+            });
+        } else {
+            await executeWithDeclareResponse<FolderDetailResponse>(() => GetFolderByUuid(folderUUID), {
+                onSuccess: (data) => {
+                    setFiles(data.files || []);
+                    setFolderPath(buildFolderPath(data.folder, allFoldersList));
+                },
+                onError: () => {
+                    navigate("/page/files");
+                },
+            });
+        }
+
     }, [folderUUID]);
 
     useEffect(() => {
         setFiles([]);
-        setFolders([]);
+        setAllFolders([]);
         setFolderPath([]);
         fetchData();
     }, [folderUUID]);
@@ -80,11 +115,14 @@ const FilePage = () => {
     const [isRenameFolderOpen, setIsRenameFolderOpen] = useState(false);
 
     const handleCreateFolder = async (name: string) => {
-        await executeApi(() => CreateFolder({ name }), {
+        await executeApi(() => CreateFolder({ name, folder_parent_uuid: folderUUID }), {
             onSuccess: (data) => {
-                setFolders((prev) => [...prev, data]);
+                setAllFolders((prev) => [...prev, data]);
                 setIsCreateFolderOpen(false);
                 showToast({ type: "success", title: "Thành công", message: "Tạo thư mục thành công" });
+            },
+            onError(error) {
+                console.log(error)
             },
         });
     }
@@ -92,10 +130,8 @@ const FilePage = () => {
     const handleRenameFolder = async (uuid: string, name: string) => {
         await executeApi(() => RenameFolder(uuid, name), {
             onSuccess: (data) => {
-                setFolders((prev) => prev.map((f) => (f.uuid === data.uuid ? data : f)));
-                if (folderPath.length > 0 && folderPath[folderPath.length - 1].uuid === data.uuid) {
-                    setFolderPath((prev) => [...prev.slice(0, -1), data]);
-                }
+                setAllFolders((prev) => prev.map((f) => (f.uuid === data.uuid ? data : f)));
+                setFolderPath((prev) => prev.map((f) => (f.uuid === data.uuid ? data : f)));
                 setIsRenameFolderOpen(false);
                 showToast({ type: "success", title: "Thành công", message: "Đổi tên thư mục thành công" });
             },
@@ -186,7 +222,9 @@ const FilePage = () => {
             // choice === 2: skip conflict files, finalPresignResponse stays as-is (no conflict files)
         }
 
-        finalPresignResponse.forEach((pres) => handleUploadFile(mapFiles[pres.client_file_id], pres));
+        await Promise.all(
+            finalPresignResponse.map((pres) => handleUploadFile(mapFiles[pres.client_file_id], pres))
+        );
 
         showToast({
             type: "success",
@@ -345,8 +383,14 @@ const FilePage = () => {
             {/* Toolbar */}
             <FileToolbar
                 currentFolderPath={folderPath}
-                onNavigateToRoot={() => { if (folderUUID) navigate("/page/files"); }}
-                onNavigateToFolder={(folder) => navigate(`/page/files/${folder.uuid}`)}
+                onNavigateToRoot={() => {
+                    setSelectedPreviewImage(null);
+                    if (folderUUID) navigate("/page/files");
+                }}
+                onNavigateToFolder={(folder) => {
+                    setSelectedPreviewImage(null);
+                    navigate(`/page/files/${folder.uuid}`)
+                }}
                 onCreateFolder={() => setIsCreateFolderOpen(true)}
                 onUploadFiles={() => setIsUploadFileOpen(true)}
             />
@@ -359,7 +403,10 @@ const FilePage = () => {
                     loading={loading}
                     viewMode={viewMode}
                     onViewModeChange={(mode) => setSearchParams((prev) => { prev.set("view", mode); return prev; })}
-                    onOpenFolder={(folder) => navigate(`/page/files/${folder.uuid}`)}
+                    onOpenFolder={(folder) => {
+                        setSelectedPreviewImage(null);
+                        navigate(`/page/files/${folder.uuid}`)
+                    }}
                     onRenameFolder={(folder) => {
                         setTargetRenameFolder(folder);
                         setIsRenameFolderOpen(true);
@@ -369,9 +416,7 @@ const FilePage = () => {
                     onDeleteFile={(file) => handleDeleteFile(file)}
                     onDownloadFile={(file) => handleDownloadFile(file)}
                     onPreviewImage={(file) => {
-                        if (file.content_type?.startsWith("image/")) {
-                            navigate(`/page/files/preview/${file.uuid}`);
-                        }
+                        setSelectedPreviewImage(file);
                     }}
                 />
 
@@ -405,7 +450,7 @@ const FilePage = () => {
                 isOpen={isUploadFileOpen}
                 onClose={() => setIsUploadFileOpen(false)}
                 onSubmit={handleUploadFiles}
-                destinationLabel={folderPath.length > 0 ? `GMS Cloud › ${folderPath[0].name}` : "GMS Cloud"}
+                destinationLabel={folderPath.length > 0 ? `GMS Cloud > ${folderPath[0].name}` : "GMS Cloud"}
             />
         </div>
     );

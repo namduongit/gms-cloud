@@ -11,7 +11,7 @@ const DashboardLayout = () => {
 
             <div className="flex gap-0">
                 <aside className="hidden w-56 shrink-0 border-r border-gray-100 lg:block">
-                    <div className="sticky top-[57px] h-[calc(100vh-57px)] overflow-y-auto px-4 py-4">
+                    <div className="sticky top-14.25 h-[calc(100vh-57px)] overflow-y-auto px-4 py-4">
                         <Sidebar />
                     </div>
                 </aside>

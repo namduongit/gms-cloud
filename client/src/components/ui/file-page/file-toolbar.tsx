@@ -18,8 +18,9 @@ const FileToolbar = ({
     onUploadFiles,
 }: FileToolbarProps) => {
     const [openMenu, setOpenMenu] = useState(false);
+    const reversedPath = [...currentFolderPath].reverse();
 
-    const currentFolder = currentFolderPath[currentFolderPath.length - 1];
+    const currentFolder = reversedPath[0];
 
     return (
         <div className="flex items-center justify-between gap-4">
@@ -36,7 +37,7 @@ const FileToolbar = ({
                         GMS Cloud
                     </Button>
 
-                    {currentFolderPath.map((folder) => (
+                    {reversedPath.map((folder) => (
                         <span key={folder.uuid} className="flex items-center gap-1">
                             <i className="fa-solid fa-chevron-right text-[10px] text-gray-300" />
                             <Button

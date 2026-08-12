@@ -38,12 +38,23 @@ func GetFilesByFolderUUID(accountID uint, folderUUID string) ([]model.File, erro
 	return files, err
 }
 
-func CreateFolder(accountID uint, name string) (*model.Folder, error) {
+func CreateFolder(accountID uint, name string, FolderParentUUID *string) (*model.Folder, error) {
 	var folder = model.Folder{
 		Name:      name,
 		AccountID: accountID,
 		TotalFile: 0,
 		TotalSize: 0,
+	}
+
+	if FolderParentUUID != nil {
+		// Check max of size is 4
+		var folders []model.Folder
+		_ = config.PostgresClient.Where("folder_parent_uuid = ?", FolderParentUUID).Find(&folders).Error
+		if len(folders) > 3 {
+			return nil, errors.New("Too many folders")
+		}
+
+		folder.FolderParentUUID = FolderParentUUID
 	}
 
 	err := config.PostgresClient.Create(&folder).Error

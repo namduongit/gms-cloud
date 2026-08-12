@@ -180,7 +180,7 @@ const AccountApiPage = () => {
                 </div>
 
                 <div className="overflow-x-auto">
-                    <table className="w-full min-w-[720px] text-left text-sm">
+                    <table className="w-full min-w-180 text-left text-sm">
                         <thead>
                             <tr className="border-b border-gray-100">
                                 <th className="px-5 py-2.5 text-xs font-medium uppercase tracking-wide text-gray-400">Token</th>

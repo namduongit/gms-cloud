@@ -2,11 +2,12 @@ import type { FileResponse } from "./file.type";
 
 export type CreateFolderForm = {
     name: string;
+    folder_parent_uuid?: string;
 }
 
 export type FolderResponse = {
     uuid: string;
-    
+    parent_uuid: string;
     name: string;
     total_files: number;
     total_size: number;

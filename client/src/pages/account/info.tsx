@@ -10,7 +10,6 @@ const inputCls =
     "mt-1.5 w-full rounded-lg border border-gray-200 bg-white px-3.5 py-2.5 text-sm text-gray-900 placeholder:text-gray-400 focus:border-[#1a73e8] focus:outline-none focus:ring-2 focus:ring-[#1a73e8]/10 transition-colors";
 
 const defaultForm: UpdateProfileForm = {
-    username: "",
     avatar_url: "",
     full_name: "",
     company_name: "",
@@ -41,7 +40,6 @@ const AccountInfoPage = () => {
         void getProfile(() => ProfileModule.GetProfile(), {
             onSuccess: (p) => {
                 setForm({
-                    username: p.username ?? "",
                     avatar_url: p.avatar_url ?? "",
                     full_name: p.full_name ?? "",
                     company_name: p.company_name ?? "",
@@ -69,7 +67,6 @@ const AccountInfoPage = () => {
         await saveProfile(() => ProfileModule.UpdateProfile(form), {
             onSuccess: (p) => {
                 setForm({
-                    username: p.username ?? "",
                     avatar_url: p.avatar_url ?? "",
                     full_name: p.full_name ?? "",
                     company_name: p.company_name ?? "",
@@ -116,9 +113,6 @@ const AccountInfoPage = () => {
                             <i className="fa-regular fa-gem text-[10px]" />
                             {planName}
                         </span>
-                        {form.username && (
-                            <span className="text-xs text-gray-400">@{form.username}</span>
-                        )}
                     </div>
                 </div>
 
@@ -134,7 +128,7 @@ const AccountInfoPage = () => {
             </div>
 
             <div className="space-y-5">
-                <div className="grid gap-4 sm:grid-cols-2">
+                <div className="grid gap-4 sm:grid-cols-1">
                     <div>
                         <label className="text-sm font-medium text-gray-700" htmlFor="full_name">
                             Họ và tên
@@ -146,19 +140,6 @@ const AccountInfoPage = () => {
                             value={form.full_name}
                             onChange={handleChange}
                             placeholder="Nhập họ và tên"
-                        />
-                    </div>
-                    <div>
-                        <label className="text-sm font-medium text-gray-700" htmlFor="username">
-                            Username
-                        </label>
-                        <input
-                            id="username"
-                            name="username"
-                            className={inputCls}
-                            value={form.username}
-                            onChange={handleChange}
-                            placeholder="Nhập username"
                         />
                     </div>
                 </div>

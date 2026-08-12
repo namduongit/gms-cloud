@@ -19,7 +19,8 @@ export const useExecute = <T>() => {
             setLoading(true);
             const result = await func();
 
-            console.log("======= Result debug: ", result);
+            console.log("======= Result debug: =======");
+            console.log(result);
 
             setData(result.data);
             options?.onSuccess?.(result.data);
@@ -44,10 +45,10 @@ export const useExecute = <T>() => {
             setLoading(true);
             const result = await func();
 
-            console.log("======= Result debug: ", result);
+            console.log("======= Result debug: =======");
+            console.log(result);
 
             setData(result.data as unknown as T);
-            const data = result.data
             options?.onSuccess?.(result.data);
             return result.data;
 

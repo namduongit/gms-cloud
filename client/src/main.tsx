@@ -13,6 +13,7 @@ import AccountInfoPage from './pages/account/info'
 import AccountApiPage from './pages/account/api'
 import SecurityPage from './pages/account/security'
 import HomePage from './pages/home/home'
+import NotFoundPage from './pages/not-found/not-found'
 
 import NotificateProvider from './common/contexts/notificate'
 import AuthenticateProvider from './common/contexts/authenticate'
@@ -46,6 +47,7 @@ createRoot(document.getElementById('root')!).render(
           <Route path="/verify/success" element={<VerifySuccessPage />} />
           <Route path="/verify/failed" element={<VerifyFailedPage />} />
           <Route path="/page/document" element={<DocumentPage />} />
+          <Route path="*" element={<NotFoundPage />} />
 
         </Routes>
       </BrowserRouter>
