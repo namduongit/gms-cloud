@@ -54,7 +54,7 @@ func GenerateAPITokenPair() (*APITokenPair, error) {
 	}
 
 	// SHA-256 the combined secret so bcrypt always receives ≤64 bytes
-	hashSource := sha256Hex(privateToken + cfg.APISecret + cfg.APISalt)
+	hashSource := sha256Hex(privateToken + cfg.APISecret)
 	privateTokenHash, err := bcrypt.GenerateFromPassword([]byte(hashSource), bcrypt.DefaultCost)
 	if err != nil {
 		return nil, err
@@ -73,7 +73,7 @@ func GenerateAPITokenPair() (*APITokenPair, error) {
 */
 func VerifyAPIToken(privateToken string, hashKeyLoadFromAccount string) bool {
 	cfg := config.GetConfig()
-	hashSource := sha256Hex(privateToken + cfg.APISecret + cfg.APISalt)
+	hashSource := sha256Hex(privateToken + cfg.APISecret)
 
 	err := bcrypt.CompareHashAndPassword([]byte(hashKeyLoadFromAccount), []byte(hashSource))
 	return err == nil

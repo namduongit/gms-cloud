@@ -25,7 +25,6 @@ func main() {
 		&model.File{},
 		&model.Token{},
 		&model.Session{},
-		&model.Part{},
 		&model.ActivityLog{},
 	)
 

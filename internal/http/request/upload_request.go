@@ -4,15 +4,15 @@ type ConflictStrategy string
 
 const (
 	ConflictStrategyOverwrite ConflictStrategy = "overwrite"
-	ConflictStrategyKeep     ConflictStrategy = "keep"
+	ConflictStrategyKeep      ConflictStrategy = "keep"
 )
 
 type MetadataFile struct {
-	ClientFileID     string           `json:"client_file_id" validate:"required"`
-	Name             string           `json:"name" validate:"required"`
-	Size             uint64           `json:"size" validate:"required"`
-	ContentType      string           `json:"type" validate:"required"`
-	ConflictStrategy ConflictStrategy `json:"conflict_strategy"`
+	ClientFileID string `json:"client_file_id" validate:"required"`
+	Name         string `json:"name" validate:"required"`
+	Size         uint64 `json:"size" validate:"required"`
+	ContentType  string `json:"type" validate:"required"`
+	IsOverwrite  bool   `json:"is_overwrite"`
 }
 
 type PresignUploadRequest struct {

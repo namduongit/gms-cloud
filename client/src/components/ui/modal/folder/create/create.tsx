@@ -68,7 +68,7 @@ const CreateFolderModal = ({ isOpen, onClose, onSubmit, loading }: CreateFolderM
                     <Button
                         type="submit"
                         className="rounded-md bg-[#1a73e8] px-5 py-1.5 text-white hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60 text-sm"
-                        disabled={!folderName.trim() || loading}
+                        disabled={loading}
                     >
                         {loading ? "Đang tạo..." : "Tạo thư mục"}
                     </Button>

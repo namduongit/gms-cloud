@@ -50,7 +50,7 @@ const FilePage = () => {
     const viewMode = rawView === "grid" || rawView === "list" ? rawView : "list";
 
     const { executeWithDeclareResponse, loading } = useExecute();
-    const { executeWithDeclareResponse: executeApi } = useExecute();
+    const { executeWithDeclareResponse: executeApi, loading: loadingAPI } = useExecute();
 
     const { showToast, showAlert, showConfirm, showFileConflict } = useNotificate();
 
@@ -121,8 +121,8 @@ const FilePage = () => {
                 setIsCreateFolderOpen(false);
                 showToast({ type: "success", title: "Thành công", message: "Tạo thư mục thành công" });
             },
-            onError(error) {
-                console.log(error)
+            onError() {
+                showToast({ type: "warning", title: "Thất bại", message: "Tên thư mục đã tồn tại"});
             },
         });
     }
@@ -206,7 +206,7 @@ const FilePage = () => {
                         name: p.file_name,
                         size: mapFiles[p.client_file_id].size,
                         type: mapFiles[p.client_file_id].type,
-                        conflict_strategy: "overwrite" as const,
+                        is_overwrite: true as const,
                     })),
                     ...(folderUUID ? { destination_uuid: folderUUID } : {}),
                 };
@@ -433,7 +433,7 @@ const FilePage = () => {
                 isOpen={isCreateFolderOpen}
                 onClose={() => setIsCreateFolderOpen(false)}
                 onSubmit={handleCreateFolder}
-                loading={loading}
+                loading={loadingAPI}
             />
 
             <RenameFolderModal
@@ -442,7 +442,7 @@ const FilePage = () => {
                 folderUUID={targetRenameFolder?.uuid ?? ""}
                 onClose={() => { setIsRenameFolderOpen(false); setTargetRenameFolder(null); }}
                 onSubmit={handleRenameFolder}
-                loading={loading}
+                loading={loadingAPI}
             />
 
             {/* File Action Modals */}

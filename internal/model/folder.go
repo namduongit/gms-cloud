@@ -8,7 +8,7 @@ import (
 type Folder struct {
 	gorm.Model
 
-	UUID uuid.UUID `gorm:"type:uuid;uniqueIndex;not null;default:gen_random_uuid()"`
+	UUID uuid.UUID `gorm:"type:uuid;unique;not null;default:gen_random_uuid()"`
 
 	Name      string `gorm:"size:100;not null"`
 	TotalFile uint64

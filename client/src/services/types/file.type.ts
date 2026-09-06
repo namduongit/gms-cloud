@@ -1,12 +1,10 @@
-export type UploadConflictStrategy = "keep_both" | "overwrite";
-
 // Sign
 export type FileMetadata = {
     client_file_id: string;
     name: string;
     size: number;
     type: string;
-    conflict_strategy?: UploadConflictStrategy;
+    is_overwrite?: boolean;
 }
 
 export type PresignUploadForm = {

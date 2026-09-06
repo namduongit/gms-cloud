@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"url-shortener/internal/config"
 	"url-shortener/internal/model"
 
@@ -37,6 +38,9 @@ func DeleteFileByUUID(accountID uint, uuid string) error {
 		if err := tx.Delete(&file).Error; err != nil {
 			return err
 		}
+
+		// Delete the file in storage
+		config.DeleteObject(context.Background(), config.GetFinalBucketName(), file.StorageKey)
 
 		// Reclaim storage quota (decrease UsedStorage)
 		if fileSize > 0 {

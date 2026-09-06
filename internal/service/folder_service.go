@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"strings"
 	"url-shortener/internal/config"
 	"url-shortener/internal/model"
 
@@ -39,7 +40,17 @@ func GetFilesByFolderUUID(accountID uint, folderUUID string) ([]model.File, erro
 }
 
 func CreateFolder(accountID uint, name string, FolderParentUUID *string) (*model.Folder, error) {
-	var folder = model.Folder{
+	name = strings.TrimSpace(name)
+	var existingFolder model.Folder
+	err := config.PostgresClient.
+		Where("name = ? AND account_id = ?", name, accountID).
+		First(&existingFolder).Error
+
+	if err == nil {
+		return nil, errors.New("Folder already exists")
+	}
+
+	folder := model.Folder{
 		Name:      name,
 		AccountID: accountID,
 		TotalFile: 0,
@@ -57,7 +68,7 @@ func CreateFolder(accountID uint, name string, FolderParentUUID *string) (*model
 		folder.FolderParentUUID = FolderParentUUID
 	}
 
-	err := config.PostgresClient.Create(&folder).Error
+	err = config.PostgresClient.Create(&folder).Error
 
 	return &folder, err
 }

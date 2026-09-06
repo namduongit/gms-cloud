@@ -6,7 +6,7 @@ const api = Axios();
 
 export const PlanModule = {
     async GetPlans() {
-        const response = await api.get<RestResponse<PlanListResponse>>("/api/public/plans");
+        const response = await api.get<RestResponse<PlanListResponse>>("/public/plans");
         return response.data;
     },
 }

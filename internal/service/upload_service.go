@@ -47,40 +47,33 @@ func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, fol
 			hasConflict := existingErr == nil // file with same key already exists
 
 			if hasConflict {
-				if file.ConflictStrategy == "" {
-					// No strategy provided → signal conflict back to client
-					p.Reason = "conflict"
-					plans = append(plans, p)
-					continue
-				}
-				if file.ConflictStrategy == request.ConflictStrategyKeep {
+				if !file.IsOverwrite {
 					// Skip upload, keep existing
 					p.Reason = "skipped"
 					plans = append(plans, p)
 					continue
 				}
-				if file.ConflictStrategy == request.ConflictStrategyOverwrite {
-					// Delete old file from S3 and DB
-					go func(storageKey string) {
-						_ = config.DeleteObject(context.Background(), config.GetFinalBucketName(), storageKey)
-					}(existingFile.StorageKey)
 
-					if err := tx.Unscoped().Delete(&existingFile).Error; err != nil {
-						p.Reason = "Failed to delete existing file: " + err.Error()
-						plans = append(plans, p)
-						continue
-					}
-					// Update account usage: subtract old file size
-					if err := tx.Model(&model.AccountUsage{}).
-						Where("account_id = ?", accountID).
-						Update("used_storage", gorm.Expr("GREATEST(used_storage - ?, 0)", existingFile.Size)).Error; err != nil {
-						p.Reason = "Failed to update storage usage: " + err.Error()
-						plans = append(plans, p)
-						continue
-					}
-					// Recalculate available after deletion
-					available += existingFile.Size
+				// Delete old file from S3 and DB
+				go func(storageKey string) {
+					_ = config.DeleteObject(context.Background(), config.GetFinalBucketName(), storageKey)
+				}(existingFile.StorageKey)
+
+				if err := tx.Unscoped().Delete(&existingFile).Error; err != nil {
+					p.Reason = "Failed to delete existing file: " + err.Error()
+					plans = append(plans, p)
+					continue
 				}
+				// Update account usage: subtract old file size
+				if err := tx.Model(&model.AccountUsage{}).
+					Where("account_id = ?", accountID).
+					Update("used_storage", gorm.Expr("GREATEST(used_storage - ?, 0)", existingFile.Size)).Error; err != nil {
+					p.Reason = "Failed to update storage usage: " + err.Error()
+					plans = append(plans, p)
+					continue
+				}
+				// Recalculate available after deletion
+				available += existingFile.Size
 			}
 
 			if available < file.Size {
@@ -194,7 +187,6 @@ func SignURLUpload(c *gin.Context, uuid string, request request.SignUploadReques
 	// Use Redis to get session
 	session, err := GetUploadSession(c.Request.Context(), uuid)
 	if err != nil {
-		// Cron job will delete expired sessions
 		return nil, errors.New("Session not found")
 	}
 
@@ -339,9 +331,6 @@ func CompleteMultipartUpload(c *gin.Context, uuid string, request request.Comple
 	session.Status = model.SessionCompleted
 	session.ReservedBytes = 0
 
-	// Save Parts async
-	go savePart(session.ID, request.PartCompletes)
-
 	// Update folder metadata async
 	if session.FolderID != nil {
 		go updateFolderMetadata(session.FolderID)
@@ -362,17 +351,6 @@ func CompleteMultipartUpload(c *gin.Context, uuid string, request request.Comple
 	}
 
 	return &file, nil
-}
-
-func savePart(sessionID uint, parts []request.PartComplete) {
-	for _, part := range parts {
-		config.PostgresClient.Create(&model.Part{
-			SessionID:  sessionID,
-			PartNumber: part.PartNumber,
-			ETag:       part.ETag,
-			SizeBytes:  part.SizeBytes,
-		})
-	}
 }
 
 func updateFolderMetadata(folderID *uint) {

@@ -37,7 +37,6 @@ func toFileResponse(f *model.File) response.FileResponse {
 * * Generate upload URL for single or multipart upload
 * * For multipart upload, the client will call SignUpload API to get the upload URL for each part, and call UploadPart API to store the Etag and size of each part in the database. Finally, the client will call CompleteUpload API to complete the upload process.
  */
-
 func SignUpload(c *gin.Context) {
 	sessionUUID := strings.TrimSpace(c.Param("uuid"))
 	if sessionUUID == "" {

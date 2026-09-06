@@ -13,7 +13,7 @@ import (
 )
 
 // ShowImage streams an image object directly from MinIO without generating a presigned S3 URL.
-// Route: GET /api/public/images/:code
+// Route: GET /public/images/:code
 // :code is the file UUID used to look up the file record in the database.
 func ShowImage(c *gin.Context) {
 	code := c.Param("code")

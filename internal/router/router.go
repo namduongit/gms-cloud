@@ -30,13 +30,10 @@ func SetupRouter() *gin.Engine {
 	r.GET("/auth/activation", handler.Activation)
 	r.POST("/auth/resend-activation-email", handler.ResendActivationEmail)
 
-	r.GET("/:code", handler.DirectURL)
+	r.GET("/public/plans", handler.GetPlans)
 
-	publicGroup := r.Group("/api/public")
-	{
-		publicGroup.GET("/plans", handler.GetPlans)
-		publicGroup.GET("/images/:code", handler.ShowImage)
-	}
+	r.GET("/:code", handler.DirectURL)
+	r.GET("/image/:code", handler.ShowImage)
 
 	api := r.Group("/api/token")
 	api.Use(middleware.APIMiddleware())

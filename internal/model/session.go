@@ -51,6 +51,4 @@ type Session struct {
 	ExpiresAt time.Time `gorm:"not null;index;index:idx_sessions_account_status_exp,priority:3"`
 
 	ReservedBytes uint64 `gorm:"default:0;not null"`
-
-	Parts []Part `gorm:"foreignKey:SessionID;references:ID;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }

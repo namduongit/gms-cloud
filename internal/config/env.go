@@ -20,19 +20,15 @@ type AppConfig struct {
 	// Environment production
 	ENV Environment
 
-	// Server
+	// Server & Client
 	Port       string
 	ServerHost string
-
-	// Client
 	ClientHost string
 
 	// Secret key for JWT and Token
 	JWTSecret string
-
 	// Secret key for API
 	APISecret string
-	APISalt   string
 
 	// Mail server configuration
 	MailHost     string
@@ -43,10 +39,10 @@ type AppConfig struct {
 
 	// Database
 	DBHost     string
+	DBPort     string
 	DBUser     string
 	DBPassword string
 	DBName     string
-	DBPort     string
 	DBSSLMode  string
 
 	// MiniO
@@ -81,19 +77,15 @@ func GetConfig() AppConfig {
 			/* Environment */
 			ENV: Environment(getEnv("ENV", string(Development))),
 
-			/* Server */
+			/* Server & Client */
 			Port:       getEnv("PORT", "8080"),
 			ServerHost: getEnv("SERVER_HOST", "http://localhost:8080"),
-
-			/* Client */
 			ClientHost: getEnv("CLIENT_HOST", "http://localhost:5173"),
 
 			/* Secret key for JWT and Token */
-			JWTSecret: getEnv("JWT_SECRET", "secret_key"),
-
-			/* API Secret and Salt */
-			APISecret: getEnv("API_SECRET", "api_secret"),
-			APISalt:   getEnv("API_SALT", "api_salt"),
+			JWTSecret: getEnv("JWT_SECRET", "secret-key"),
+			/* API Secret for verification account */
+			APISecret: getEnv("API_SECRET", "api-secret"),
 
 			/* Mail server configuration */
 			MailHost: getEnv("MAIL_HOST", "smtp.gmail.com"),
@@ -107,22 +99,22 @@ func GetConfig() AppConfig {
 			}(),
 			MailUsername: getEnv("MAIL_USERNAME", "email@gmail.com"),
 			MailPassword: getEnv("MAIL_PASSWORD", "password"),
-			MailSecret:   getEnv("MAIL_SECRECT", "mail_secret"),
+			MailSecret:   getEnv("MAIL_SECRECT", "mail-secret"),
 
 			/* Database Configuration - Postgres */
 			DBHost:     getEnv("DB_HOST", "localhost"),
+			DBPort:     getEnv("DB_PORT", "5432"),
 			DBUser:     getEnv("DB_USER", "postgres"),
 			DBPassword: getEnv("DB_PASSWORD", ""),
-			DBName:     getEnv("DB_NAME", "gms_cloud"),
-			DBPort:     getEnv("DB_PORT", "5432"),
+			DBName:     getEnv("DB_NAME", "gms-cloud"),
 			DBSSLMode:  getEnv("DB_SSLMODE", "disable"),
 
 			/* MinIO Configuration */
 			MiniOFinalBucketName: getEnv("MINIO_FINAL_BUCKET_NAME", "gms-cloud"),
-			MinIOTmpBucketName:   getEnv("MINIO_TMP_BUCKET_NAME", "gms-cloud-tmp"),
+			MinIOTmpBucketName:   getEnv("MINIO_TMP_BUCKET_NAME", "temp-bucket"),
 			MinIOEndpoint:        getEnv("MINIO_ENDPOINT", "localhost:9000"),
-			MinIOAccessKey:       getEnv("MINIO_ACCESS_KEY", "access_key"),
-			MinIOSecretKey:       getEnv("MINIO_SECRET_KEY", "secret_key"),
+			MinIOAccessKey:       getEnv("MINIO_ACCESS_KEY", "access-key"),
+			MinIOSecretKey:       getEnv("MINIO_SECRET_KEY", "secret-key"),
 
 			/* Redis Configuration */
 			RedisHost:     getEnv("REDIS_HOST", "localhost:6379"),
@@ -135,10 +127,6 @@ func GetConfig() AppConfig {
 				}
 				return db
 			}(),
-
-			/* Stream */
-			StreamUrl:     getEnv("STREAM_URL", "http://localhost:9000"),
-			ReplaceStream: getEnv("REPLACE_STREAM", "https://api-stream.namduong.dev"),
 		}
 	})
 

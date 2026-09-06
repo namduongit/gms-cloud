@@ -178,7 +178,7 @@ const NotificateProvider = ({ children }: { children: React.ReactNode }) => {
                 className="z-100"
             >
                 {/* Toasts */}
-                <div className="fixed top-4 right-4 z-50 flex w-full max-w-sm flex-col gap-3">
+                <div className="fixed top-4 right-4 z-100 flex w-full max-w-sm flex-col gap-3">
                     {toasts.map((toast, idx) => {
                         const { accent, surface, border } = toastPalette[toast.options.type];
 
