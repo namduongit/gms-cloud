@@ -8,6 +8,9 @@ import (
 	"url-shortener/internal/http/response"
 	"url-shortener/internal/model"
 	"url-shortener/internal/service"
+	"url-shortener/internal/utils"
+
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	s3 "github.com/aws/aws-sdk-go-v2/service/s3"
@@ -166,15 +169,22 @@ func UnShareFile(c *gin.Context) {
 	c.JSON(http.StatusOK, config.GinResponse(res, config.RestFulSuccess, nil, config.RestFulCodeSuccess))
 }
 
-// DownloadFile streams a file to the owner directly (authenticated).
-// Route: GET /api/guard/file/:uuid/download
-func DownloadFile(c *gin.Context) {
-	account := c.MustGet("account").(*model.Account)
-	fileUUID := c.Param("uuid")
+// DownloadSharedFile streams public files without auth and private files only to their owner.
+// Route: GET /download-file/:code
+func DownloadSharedFile(c *gin.Context) {
+	fileUUID := c.Param("code")
+	if fileUUID == "" {
+		c.AbortWithStatusJSON(http.StatusBadRequest, config.GinErrorResponse(
+			"File code is required",
+			config.RestFulInvalid,
+			config.RestFulCodeInvalid,
+		))
+		return
+	}
 
-	file, err := service.GetFileByUUID(account.ID, fileUUID)
-	if err != nil {
-		c.JSON(http.StatusNotFound, config.GinErrorResponse(
+	file, err := service.GetSharedFileByUUID(fileUUID)
+	if err != nil || file == nil {
+		c.AbortWithStatusJSON(http.StatusNotFound, config.GinErrorResponse(
 			"File not found",
 			config.RestFulNotFound,
 			config.RestFulCodeNotFound,
@@ -182,14 +192,83 @@ func DownloadFile(c *gin.Context) {
 		return
 	}
 
-	streamFile(c, file)
-}
+	if !file.IsShared {
+		tokenStr := ""
+		if cookieToken, err := c.Cookie("accessToken"); err == nil && cookieToken != "" {
+			tokenStr = cookieToken
+		} else {
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+					"Authorization header is required",
+					config.RestFulInvalid,
+					config.RestFulCodeInvalid,
+				))
+				return
+			}
 
-// DownloadSharedFile streams a shared file to the requester (no auth required).
-// The ShareFileMiddleware already verified the file is shared before this runs.
-// Route: GET /api/share/files/:code
-func DownloadSharedFile(c *gin.Context) {
-	file := c.MustGet("sharedFile").(*model.File)
+			parts := strings.SplitN(authHeader, " ", 2)
+			if len(parts) != 2 || !strings.EqualFold(parts[0], "Bearer") || parts[1] == "" {
+				c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+					"Invalid token format",
+					config.RestFulInvalid,
+					config.RestFulCodeInvalid,
+				))
+				return
+			}
+			tokenStr = parts[1]
+		}
+
+		claims, err := utils.VerifyToken(tokenStr, config.GetConfig().JWTSecret)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+				"Invalid or expired token",
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
+
+		accountUUID, ok := claims["uuid"].(string)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+				"Invalid token claims",
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
+
+		versionValue, ok := claims["version_id"].(float64)
+		if !ok {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+				"Invalid token claims",
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
+
+		account, err := service.GetAccountByUUIDString(accountUUID)
+		if err != nil || account.Version != uint(versionValue) {
+			c.AbortWithStatusJSON(http.StatusUnauthorized, config.GinErrorResponse(
+				"Token is expired",
+				config.RestFulUnauthorized,
+				config.RestFulCodeUnauthorized,
+			))
+			return
+		}
+
+		if file.AccountID != account.ID {
+			c.AbortWithStatusJSON(http.StatusForbidden, config.GinErrorResponse(
+				"You do not have permission to download this file",
+				config.RestFulForbidden,
+				config.RestFulCodeForbidden,
+			))
+			return
+		}
+	}
+
 	streamFile(c, file)
 }
 

@@ -28,3 +28,7 @@ func GetUploadSession(ctx context.Context, sessionUUID string) (*model.Session, 
 	}
 	return &session, nil
 }
+
+func DeleteUploadSession(ctx context.Context, sessionUUID string) {
+	config.RedisClient.Del(ctx, sessionUUID)
+}

@@ -10,6 +10,7 @@ import FileListSection from "../../components/ui/file-page/file-list-section";
 import CreateFolderModal from "../../components/ui/modal/folder/create/create";
 import RenameFolderModal from "../../components/ui/modal/folder/rename/rename";
 import UploadFileModal from "../../components/ui/modal/file/upload/create";
+import ShareFileModal from "../../components/ui/modal/file/share/share";
 
 import { FolderModule } from "../../services/modules/folder.module";
 import { FileModule } from "../../services/modules/file.module";
@@ -145,6 +146,7 @@ const FilePage = () => {
 
     // File modals state
     const [isUploadFileOpen, setIsUploadFileOpen] = useState(false);
+    const [selectedShareFile, setSelectedShareFile] = useState<FileResponse | null>(null);
 
     const handleUploadFiles = async (fileRequests: File[]) => {
         const mapFiles: Record<string, File> = {};
@@ -330,38 +332,40 @@ const FilePage = () => {
         });
     };
 
-    const handleShareToggle = async (file: FileResponse) => {
-        const isShared = file.is_shared;
-        const action = isShared ? UnshareFile : ShareFile;
-        await executeApi(() => action(file.uuid), {
+    const handleShareFile = async (file: FileResponse) => {
+        await executeApi(() => ShareFile(file.uuid), {
             onSuccess: async (data) => {
                 setFiles((prev) => prev.map((f) => (f.uuid === data.uuid ? data : f)));
-                if (!isShared) {
-                    // Vừa share → copy link vào clipboard
-                    const shareLink = `${import.meta.env.VITE_ENDPOINT_SHARE_FILE}/${data.uuid}`;
-                    try {
-                        await navigator.clipboard.writeText(shareLink);
-                        showToast({
-                            type: "success",
-                            title: "Chia sẻ thành công",
-                            message: `Link chia sẻ đã được sao chép vào clipboard.`,
-                        });
-                    } catch {
-                        showToast({
-                            type: "success",
-                            title: "Chia sẻ thành công",
-                            message: `Link: /api/share/files/${data.uuid}`,
-                        });
-                    }
-                } else {
-                    showToast({
-                        type: "success",
-                        title: "Hủy chia sẻ",
-                        message: `Đã ẩn "${file.file_name}" khỏi công cộng.`,
-                    });
-                }
+                setSelectedShareFile(null);
+                showToast({ type: "success", title: "Chia sẻ thành công", message: "File đã được chia sẻ." });
             },
         });
+    };
+
+    const handleUnshareFile = async (file: FileResponse) => {
+        await executeApi(() => UnshareFile(file.uuid), {
+            onSuccess: (data) => {
+                setFiles((prev) => prev.map((f) => (f.uuid === data.uuid ? data : f)));
+                setSelectedShareFile(null);
+                showToast({
+                    type: "success",
+                    title: "Hủy chia sẻ",
+                    message: `Đã ẩn "${file.file_name}" khỏi công cộng.`,
+                });
+            },
+        });
+    };
+
+    const handleCopyShareLink = async () => {
+        if (!selectedShareFile) return;
+
+        const shareLink = `${import.meta.env.VITE_ENDPOINT_SHARE_FILE}/${selectedShareFile.uuid}`;
+        try {
+            await navigator.clipboard.writeText(shareLink);
+            showToast({ type: "success", title: "Đã sao chép", message: "Link chia sẻ đã được sao chép." });
+        } catch {
+            showToast({ type: "warning", title: "Không thể sao chép", message: "Vui lòng sao chép link thủ công." });
+        }
     };
 
     const handleDownloadFile = async (file: FileResponse) => {
@@ -412,7 +416,7 @@ const FilePage = () => {
                         setIsRenameFolderOpen(true);
                     }}
                     onDeleteFolder={(folder) => handleDeleteFolder(folder.uuid)}
-                    onShareFile={(file) => handleShareToggle(file)}
+                    onShareFile={(file) => setSelectedShareFile(file)}
                     onDeleteFile={(file) => handleDeleteFile(file)}
                     onDownloadFile={(file) => handleDownloadFile(file)}
                     onPreviewImage={(file) => {
@@ -451,6 +455,16 @@ const FilePage = () => {
                 onClose={() => setIsUploadFileOpen(false)}
                 onSubmit={handleUploadFiles}
                 destinationLabel={folderPath.length > 0 ? `GMS Cloud > ${folderPath[0].name}` : "GMS Cloud"}
+            />
+
+            <ShareFileModal
+                isOpen={selectedShareFile !== null}
+                file={selectedShareFile}
+                onClose={() => setSelectedShareFile(null)}
+                onCopyLink={handleCopyShareLink}
+                onShare={handleShareFile}
+                onUnshare={handleUnshareFile}
+                processing={loadingAPI}
             />
         </div>
     );

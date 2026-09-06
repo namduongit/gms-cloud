@@ -34,6 +34,7 @@ func SetupRouter() *gin.Engine {
 
 	r.GET("/:code", handler.DirectURL)
 	r.GET("/image/:code", handler.ShowImage)
+	r.GET("/download-file/:code", handler.DownloadSharedFile)
 
 	api := r.Group("/api/token")
 	api.Use(middleware.APIMiddleware())
@@ -42,12 +43,6 @@ func SetupRouter() *gin.Engine {
 		api.POST("/sign-upload/:uuid", handler.APISignUpload)
 		api.POST("/complete-upload/:uuid", handler.APICompleteSingleUpload)
 		api.POST("/complete-multipart-upload/:uuid", handler.APICompleteMultipartUpload)
-	}
-
-	share := r.Group("/api/share")
-	share.Use(middleware.ShareFileMiddleware())
-	{
-		share.GET("/files/:code", handler.DownloadSharedFile)
 	}
 
 	protected := r.Group("/api/guard")
@@ -84,7 +79,6 @@ func SetupRouter() *gin.Engine {
 		protected.DELETE("/files/:uuid", handler.DeleteFile)
 		protected.POST("/files/:uuid/share", handler.ShareFile)
 		protected.POST("/files/:uuid/unshare", handler.UnShareFile)
-		protected.GET("/file/:uuid/download", handler.DownloadFile)
 
 		protected.GET("/short-urls", handler.GetShortURLs)
 		protected.POST("/short-urls", handler.CreateShortURL)

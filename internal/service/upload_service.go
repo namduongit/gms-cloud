@@ -49,7 +49,7 @@ func BatchInit(c *gin.Context, accountID uint, files []request.MetadataFile, fol
 			if hasConflict {
 				if !file.IsOverwrite {
 					// Skip upload, keep existing
-					p.Reason = "skipped"
+					p.Reason = "conflict"
 					plans = append(plans, p)
 					continue
 				}
@@ -274,9 +274,8 @@ func CompleteSingleUpload(c *gin.Context, uuid string) (*model.File, error) {
 		return nil, err
 	}
 
-	if err := config.PostgresClient.Save(&session).Error; err != nil {
-		return nil, err
-	}
+	config.PostgresClient.Unscoped().Delete(&session)
+	DeleteUploadSession(c.Request.Context(), session.UUID.String())
 
 	return &file, nil
 }
@@ -346,9 +345,8 @@ func CompleteMultipartUpload(c *gin.Context, uuid string, request request.Comple
 		return nil, err
 	}
 
-	if err := config.PostgresClient.Save(&session).Error; err != nil {
-		return nil, err
-	}
+	config.PostgresClient.Unscoped().Delete(&session)
+	DeleteUploadSession(c.Request.Context(), session.UUID.String())
 
 	return &file, nil
 }
