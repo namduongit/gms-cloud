@@ -276,7 +276,7 @@ func DownloadSharedFile(c *gin.Context) {
 func streamFile(c *gin.Context, file *model.File) {
 	cfg := config.GetConfig()
 
-	out, err := config.S3Client.GetObject(context.Background(), &s3.GetObjectInput{
+	out, err := config.S3LocalClient.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(cfg.MiniOFinalBucketName),
 		Key:    aws.String(file.StorageKey),
 	})

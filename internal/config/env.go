@@ -49,6 +49,7 @@ type AppConfig struct {
 	MiniOFinalBucketName string
 	MinIOTmpBucketName   string
 	MinIOEndpoint        string
+	MiniOLocalEndpoint   string
 	MinIOAccessKey       string
 	MinIOSecretKey       string
 
@@ -113,6 +114,7 @@ func GetConfig() AppConfig {
 			MiniOFinalBucketName: getEnv("MINIO_FINAL_BUCKET_NAME", "gms-cloud"),
 			MinIOTmpBucketName:   getEnv("MINIO_TMP_BUCKET_NAME", "temp-bucket"),
 			MinIOEndpoint:        getEnv("MINIO_ENDPOINT", "localhost:9000"),
+			MiniOLocalEndpoint:   getEnv("MINIO_LOCAL_ENDPOINT", "localhost:9000"),
 			MinIOAccessKey:       getEnv("MINIO_ACCESS_KEY", "access-key"),
 			MinIOSecretKey:       getEnv("MINIO_SECRET_KEY", "secret-key"),
 

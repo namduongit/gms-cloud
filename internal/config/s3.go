@@ -14,6 +14,7 @@ import (
 )
 
 var S3Client *s3Service.Client
+var S3LocalClient *s3Service.Client
 var PresignClient *s3.PresignClient
 
 type CompletePart struct {
@@ -43,7 +44,7 @@ This structure allows for easy organization and retrieval of files based on thei
 */
 
 func InitS3Client(ctx context.Context) {
-	config, _ := s3Config.LoadDefaultConfig(ctx,
+	sCfg, _ := s3Config.LoadDefaultConfig(ctx,
 		s3Config.WithRegion("us-east-1"),
 		s3Config.WithCredentialsProvider(
 			s3Credential.NewStaticCredentialsProvider(
@@ -55,8 +56,24 @@ func InitS3Client(ctx context.Context) {
 		s3Config.WithBaseEndpoint(cfg.MinIOEndpoint),
 	)
 
-	s3Client := s3Service.NewFromConfig(config, func(o *s3Service.Options) {
+	s3Client := s3Service.NewFromConfig(sCfg, func(o *s3Service.Options) {
 		// Set the S3 service to use path-style addressing instead of virtual-hosted-style addressing
+		o.UsePathStyle = true
+	})
+
+	lCfg, _ := s3Config.LoadDefaultConfig(ctx,
+		s3Config.WithRegion("us-east-1"),
+		s3Config.WithCredentialsProvider(
+			s3Credential.NewStaticCredentialsProvider(
+				cfg.MinIOAccessKey,
+				cfg.MinIOSecretKey,
+				"",
+			),
+		),
+		s3Config.WithBaseEndpoint(cfg.MiniOLocalEndpoint),
+	)
+
+	s3LocalClient := s3Service.NewFromConfig(lCfg, func(o *s3Service.Options) {
 		o.UsePathStyle = true
 	})
 
@@ -65,6 +82,7 @@ func InitS3Client(ctx context.Context) {
 	log.Println("Connect to S3 cloud success")
 
 	S3Client = s3Client
+	S3LocalClient = s3LocalClient
 	PresignClient = presignClient
 }
 

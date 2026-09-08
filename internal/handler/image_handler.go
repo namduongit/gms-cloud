@@ -2,6 +2,7 @@ package handler
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"net/http"
 	"url-shortener/internal/config"
@@ -17,7 +18,7 @@ import (
 // :code is the file UUID used to look up the file record in the database.
 func ShowImage(c *gin.Context) {
 	code := c.Param("code")
-
+	fmt.Println("Code: ", code)
 	// Look up the file record by UUID
 	var file model.File
 	if err := config.PostgresClient.Where("uuid = ?", code).First(&file).Error; err != nil {
@@ -27,6 +28,9 @@ func ShowImage(c *gin.Context) {
 			config.RestFulCodeNotFound,
 		))
 		return
+	}
+	if file.UUID.String() == code {
+		fmt.Println("UUID is code")
 	}
 
 	// Only serve image content types
@@ -41,16 +45,18 @@ func ShowImage(c *gin.Context) {
 
 	// Fetch the object from MinIO
 	cfg := config.GetConfig()
-	out, err := config.S3Client.GetObject(context.Background(), &s3.GetObjectInput{
+	out, err := config.S3LocalClient.GetObject(context.Background(), &s3.GetObjectInput{
 		Bucket: aws.String(cfg.MiniOFinalBucketName),
 		Key:    aws.String(file.StorageKey),
 	})
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, config.GinErrorResponse(
 			"Failed to retrieve image",
 			config.RestFulInternalError,
 			config.RestFulCodeInternalError,
 		))
+		fmt.Println("Error: ", err)
 		return
 	}
 	defer out.Body.Close()
