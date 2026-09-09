@@ -21,11 +21,11 @@ export function Axios(): AxiosInstance {
 
     config.interceptors.response.use(
         async (response) => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            // await new Promise((resolve) => setTimeout(resolve, 500));
             return response;
         },
         async (error) => {
-            await new Promise((resolve) => setTimeout(resolve, 500));
+            // await new Promise((resolve) => setTimeout(resolve, 500));
             return Promise.reject(error);
         }
     )

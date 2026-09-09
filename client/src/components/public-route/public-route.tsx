@@ -8,9 +8,9 @@ interface PublicRouteProps {
 }
 
 const PublicRoute = ({ redirectPath = "/page/files", children }: PublicRouteProps) => {
-    const { authConfig, checkingAuth } = useAuthenticate();
+    const { authConfig, initialized: checkingAuth } = useAuthenticate();
 
-    if (checkingAuth) {
+    if (!checkingAuth) {
         return (
             <div className="flex min-h-screen items-center justify-center bg-gray-50">
                 <div className="rounded-2xl border border-gray-300/90 bg-white px-8 py-6 text-center shadow-[0_14px_40px_rgba(34,61,102,0.09)]">
